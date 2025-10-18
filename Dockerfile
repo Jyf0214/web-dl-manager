@@ -11,24 +11,32 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get purge -y --auto-remove curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Set up the working directory
-WORKDIR /app
+# 2. Create a non-root user with UID 1000
+RUN useradd -m -u 1000 user
 
-# 3. Install Python dependencies
-COPY ./app/requirements.txt /app/requirements.txt
+# 3. Set up the working directory and data directories
+WORKDIR /app
+RUN mkdir -p /data/downloads /data/archives /data/status && chown -R 1000:1000 /app /data
+
+# 4. Install Python dependencies
+COPY --chown=1000:1000 ./app/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 4. Copy the application code and entrypoint script
-COPY ./app /app
-COPY ./entrypoint.sh /entrypoint.sh
+# 5. Copy the application code and entrypoint script
+COPY --chown=1000:1000 ./app /app
+COPY --chown=1000:1000 ./entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# 5. Expose the port the app runs on
+# 6. Switch to the non-root user
+USER 1000
+
+# 7. Expose the port the app runs on
 EXPOSE 8000
 
-# 6. Define data directories for downloads, archives, and status
+# 8. Define data directories for downloads, archives, and status
 VOLUME /data/downloads
 VOLUME /data/archives
 VOLUME /data/status
 
-# 7. Run the application using the entrypoint script
+# 9. Run the application using the entrypoint script
 ENTRYPOINT ["/entrypoint.sh"]
