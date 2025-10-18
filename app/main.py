@@ -75,7 +75,7 @@ async def upload_to_gofile(file_path: Path, status_file: Path) -> str:
 
     async with httpx.AsyncClient() as client:
         # 1. Get the best server
-        response = await client.get("https://api.gofile.io/getServer")
+        response = await client.get("https://api.gofile.io/servers")
         response.raise_for_status()
         server = response.json()["data"]["server"]
         upload_url = f"https://{server}.gofile.io/uploadFile"
