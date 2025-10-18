@@ -31,6 +31,7 @@ RUN mkdir -p /data/downloads /data/archives /data/status && chown -R 1000:1000 /
 # 4. Install Python dependencies
 # Copy dependencies from the builder stage
 COPY --from=builder /usr/local/lib/python3.11/site-packages/ /usr/local/lib/python3.11/site-packages/
+COPY --from=builder /usr/local/bin/ /usr/local/bin/
 # Copy and install main application dependencies
 COPY --chown=1000:1000 ./app/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
