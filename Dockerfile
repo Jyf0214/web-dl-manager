@@ -1,6 +1,13 @@
+# Stage 1: Build kemono-dl in a separate environment
+FROM python:3.10-slim as builder
+
+# Install kemono-dl and its dependencies
+RUN pip install --no-cache-dir git+https://github.com/AlphaSlayer1964/kemono-dl.git
+
+# Stage 2: Final image
 FROM python:3.10-slim
 
-# 1. Install system dependencies: zstd, rclone, and git
+# 1. Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     unzip \
@@ -11,20 +18,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get purge -y --auto-remove curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Create a non-root user with UID 1000
+# 2. Create a non-root user
 RUN useradd -m -u 1000 user
 
-# 3. Set up the working directory and data directories
+# 3. Set up directories
 WORKDIR /app
 RUN mkdir -p /data/downloads /data/archives /data/status && chown -R 1000:1000 /app /data
 
 # 4. Install Python dependencies
+# Copy dependencies from the builder stage
+COPY --from=builder /usr/local/lib/python3.10/site-packages/ /usr/local/lib/python3.10/site-packages/
+# Copy and install main application dependencies
 COPY --chown=1000:1000 ./app/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir git+https://github.com/AlphaSlayer1964/kemono-dl.git
-RUN pip install --no-cache-dir git+https://github.com/AlphaSlayer1964/kemono-dl.git
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 5. Copy the application code and entrypoint script
+# 5. Copy application code
 COPY --chown=1000:1000 ./app /app
 COPY --chown=1000:1000 ./entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
@@ -32,13 +40,13 @@ RUN chmod +x /entrypoint.sh
 # 6. Switch to the non-root user
 USER 1000
 
-# 7. Expose the port the app runs on
+# 7. Expose port
 EXPOSE 8000
 
-# 8. Define data directories for downloads, archives, and status
+# 8. Define volumes
 VOLUME /data/downloads
 VOLUME /data/archives
 VOLUME /data/status
 
-# 9. Run the application using the entrypoint script
+# 9. Set entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
