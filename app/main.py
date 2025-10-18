@@ -126,11 +126,14 @@ async def process_download_job(task_id: str, url: str, service: str, upload_path
 
         # 2. Compress the downloaded folder
         downloaded_folders = [d for d in task_download_dir.iterdir() if d.is_dir()]
-        if not downloaded_folders:
-            raise FileNotFoundError("No sub-directory found in download folder. gallery-dl might have failed.")
-        
-        source_folder_to_compress = downloaded_folders[0]
-        compress_cmd = f"zstd -r \"{source_folder_to_compress}\" -o \"{task_archive_path}\""
+        if downloaded_folders:
+            source_to_compress = downloaded_folders[0]
+        elif any(task_download_dir.iterdir()):
+            source_to_compress = task_download_dir
+        else:
+            raise FileNotFoundError("No files found in the download folder. gallery-dl might have failed.")
+
+        compress_cmd = f"zstd -r \"{source_to_compress}\" -o \"{task_archive_path}\""
         await run_command(compress_cmd, status_file)
 
         # 3. Upload
