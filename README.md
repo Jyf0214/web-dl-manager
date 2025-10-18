@@ -9,6 +9,11 @@ The entire application is containerized using Docker and comes with a GitHub Act
 -   **Dual Downloader Support:** Seamlessly switch between:
     -   **`gallery-dl`:** For downloading from hundreds of image gallery sites.
     -   **`kemono-dl`:** For downloading from `kemono.party` and `coomer.party`.
+-   **User Authentication & Blog:**
+    -   **Private Mode:** Run the application in a private mode with a login page.
+    -   **Customizable User:** Set the username, password (optional), and avatar via environment variables (`APP_USERNAME`, `APP_PASSWORD`, `AVATAR_URL`).
+    -   **Blog Index:** Display a static blog from a Git repository at the root URL.
+    -   **Task Viewer:** In private mode, logged-in users can view all tasks on the `/tasks` page.
 -   **Modern Web Interface:** A clean, responsive UI built with Bootstrap 5.
 -   **Advanced Download Options:**
     -   **DeviantArt Credentials:** Provide your own API keys to avoid rate-limiting.
@@ -17,8 +22,6 @@ The entire application is containerized using Docker and comes with a GitHub Act
         -   **Auto-Proxy:** Automatically fetch and concurrently test proxies from a public list to find a working one, with a retry mechanism.
 -   **Efficient Archiving:** Downloads are packaged into `.tar.zst` archives for efficient storage and transfer.
 -   **Flexible Uploads:** Utilizes `rclone` to upload archives to various cloud storage providers (WebDAV, S3, B2) or `gofile.io`.
--   **Private & Public Deployments:** Can be run in a public mode or a private mode (activated by an environment variable) for personal use.
--   **Automatic Cleanup:** Intelligently cleans up download and archive directories only after all active tasks are completed.
 -   **Real-time Logging:** A redesigned status page shows job logs in real-time without page reloads, and includes a copy-to-clipboard feature.
 -   **Containerized & CI/CD Ready:** Easy to deploy with Docker and includes a GitHub Actions workflow for automated builds.
 
@@ -75,6 +78,11 @@ docker run -d \
   -p 8000:8000 \
   -v ./gallery-dl-data:/data \
   -e PRIVATE_MODE=true \
+  -e APP_USERNAME=your_username \
+  -e APP_PASSWORD=your_password \
+  -e AVATAR_URL=https://your-avatar.com/avatar.png \
+  -e STATIC_SITE_GIT_URL=https://github.com/user/blog.git \
+  -e STATIC_SITE_GIT_BRANCH=main \
   --name gallery-dl-web \
   ghcr.io/literal:Jyf0214/literal:gallery-dl-web:main
 ```
@@ -83,6 +91,7 @@ In private mode, you should access the application via a specific path like `/lo
 
 ## Disclaimers
 
+-   **General Disclaimer:** This tool is provided as-is, without any warranty. The user is solely responsible for any content downloaded using this application. Please respect the terms of service of the websites you are downloading from and the intellectual property rights of the content creators.
 -   **Content Warning:** When using the `kemono-dl` downloader, be aware that the content on the target sites is primarily adult-oriented. Please ensure you are of legal age in your jurisdiction and are not violating any local laws by accessing or downloading this content.
 -   **Public Proxies:** The auto-proxy feature uses publicly available proxies. These proxies come with inherent security and privacy risks. Your traffic may be monitored, and your data could be intercepted. Use this feature at your own risk. We are not responsible for any damages or data loss that may occur.
 -   **Security:** This application is intended as a personal tool. Do not expose it to the public internet without proper security measures, such as placing it behind an authenticating reverse proxy.
