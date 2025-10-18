@@ -3,6 +3,7 @@ import uuid
 import asyncio
 import httpx
 import random
+import shutil
 from pathlib import Path
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -25,7 +26,20 @@ os.makedirs(STATUS_DIR, exist_ok=True)
 app = FastAPI(title="Gallery-DL Web UI")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
+# --- Global State ---
+active_tasks = 0
+task_lock = asyncio.Lock()
+
 # --- Helper Functions ---
+async def cleanup_directories():
+    """Clears the contents of the download and archive directories."""
+    for directory in [DOWNLOADS_DIR, ARCHIVES_DIR]:
+        for item in directory.iterdir():
+            if item.is_dir():
+                shutil.rmtree(item)
+            else:
+                item.unlink()
+
 async def get_working_proxy(status_file: Path) -> str:
     """Fetches a list of HTTP proxies, tests them concurrently, and returns a working one."""
     proxy_list_url = "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt"
@@ -252,6 +266,13 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
             f.write(f"\n--- JOB FAILED ---\n")
             f.write(f"An error occurred: {str(e)}\n")
     finally:
+        # Decrement active tasks counter and cleanup if it's the last task
+        async with task_lock:
+            global active_tasks
+            active_tasks -= 1
+            if active_tasks == 0:
+                await cleanup_directories()
+
         # Clean up temporary rclone config
         if service != "gofile":
             rclone_config_path = Path(f"/tmp/rclone_configs/{task_id}.conf")
@@ -306,6 +327,12 @@ async def create_download_job(
     task_id = str(uuid.uuid4())
     
     params = await request.form()
+
+    # Increment active tasks counter
+    async with task_lock:
+        global active_tasks
+        active_tasks += 1
+
     
     # Simple validation
     if not url or not upload_service:
