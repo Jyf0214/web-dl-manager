@@ -185,7 +185,7 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
         downloader = params.get("downloader", "gallery-dl")
 
         if downloader == "kemono-dl":
-            command = f"kemono-dl --url {url} -o {task_download_dir}"
+            command = f"kemono-dl {url} --path {task_download_dir}"
             command_log = command # No secrets in kemono-dl command yet
         else: # Default to gallery-dl
             command = f"gallery-dl --verbose -D {task_download_dir}"
