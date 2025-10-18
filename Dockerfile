@@ -1,5 +1,5 @@
 # Stage 1: Build kemono-dl in a separate environment
-FROM python:3.10-slim as builder
+FROM python:3.11-slim as builder
 
 # Install git
 RUN apt-get update && apt-get install -y --no-install-recommends git
@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git
 RUN pip install --no-cache-dir git+https://github.com/AlphaSlayer1964/kemono-dl.git
 
 # Stage 2: Final image
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # 1. Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -30,7 +30,7 @@ RUN mkdir -p /data/downloads /data/archives /data/status && chown -R 1000:1000 /
 
 # 4. Install Python dependencies
 # Copy dependencies from the builder stage
-COPY --from=builder /usr/local/lib/python3.10/site-packages/ /usr/local/lib/python3.10/site-packages/
+COPY --from=builder /usr/local/lib/python3.11/site-packages/ /usr/local/lib/python3.11/site-packages/
 # Copy and install main application dependencies
 COPY --chown=1000:1000 ./app/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
