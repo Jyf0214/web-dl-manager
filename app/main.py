@@ -25,10 +25,10 @@ app = FastAPI(title="Gallery-DL Web UI")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 # --- Helper Functions ---
-async def run_command(command: str, status_file: Path):
+async def run_command(command: str, command_to_log: str, status_file: Path):
     """Runs a shell command asynchronously, logs its progress in real-time, and has a timeout."""
     with open(status_file, "a") as f:
-        f.write(f"Executing command: {command}\n")
+        f.write(f"Executing command: {command_to_log}\n")
 
     process = await asyncio.create_subprocess_shell(
         command,
@@ -145,7 +145,12 @@ async def process_download_job(task_id: str, url: str, service: str, upload_path
             gallery_dl_cmd += f" --deviantart-client-id {params['deviantart_client_id']} --deviantart-client-secret {params['deviantart_client_secret']}"
         gallery_dl_cmd += f" \"{url}\""
 
-        await run_command(gallery_dl_cmd, status_file)
+        gallery_dl_cmd_log = f"gallery-dl --verbose -D \"{task_download_dir}\""
+        if params.get("deviantart_client_id") and params.get("deviantart_client_secret"):
+            gallery_dl_cmd_log += f" --deviantart-client-id {params['deviantart_client_id']} --deviantart-client-secret ****"
+        gallery_dl_cmd_log += f" \"{url}\""
+
+        await run_command(gallery_dl_cmd, gallery_dl_cmd_log, status_file)
 
         # 2. Compress the downloaded folder
         downloaded_folders = [d for d in task_download_dir.iterdir() if d.is_dir()]
@@ -157,7 +162,7 @@ async def process_download_job(task_id: str, url: str, service: str, upload_path
             raise FileNotFoundError("No files found in the download folder. gallery-dl might have failed.")
 
         compress_cmd = f"zstd -r \"{source_to_compress}\" -o \"{task_archive_path}\""
-        await run_command(compress_cmd, status_file)
+        await run_command(compress_cmd, compress_cmd, status_file)
 
         # 3. Upload
         if service == "gofile":
@@ -169,7 +174,7 @@ async def process_download_job(task_id: str, url: str, service: str, upload_path
                 f"rclone copyto --config \"{rclone_config_path}\" \"{task_archive_path}\" \"{remote_full_path}/{task_id}.zst\" "
                 f"-P --log-file=\"{status_file}\" --log-level=INFO"
             )
-            await run_command(upload_cmd, status_file)
+            await run_command(upload_cmd, upload_cmd, status_file)
         
         with open(status_file, "a") as f:
             f.write("\nJob completed successfully!\n")
