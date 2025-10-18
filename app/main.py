@@ -290,6 +290,7 @@ async def upload_to_gofile(file_path: Path, status_file: Path) -> str:
         with open(status_file, "a") as f:
             f.write(f"Gofile.io upload successful!\n")
             f.write(f"Download link: {download_link}\n")
+            f.write(f"gofile.io URL: {download_link}\n")
         
         return download_link
 
@@ -531,6 +532,17 @@ async def create_download_job(
     return RedirectResponse(f"/status/{task_id}", status_code=303)
 
 
+@app.get("/tasks", response_class=HTMLResponse)
+async def get_tasks(request: Request):
+    lang = get_lang(request)
+    user = request.session.get("user")
+    if PRIVATE_MODE and not user:
+        return RedirectResponse(url="/login", status_code=302)
+
+    tasks = [f.stem for f in STATUS_DIR.glob("*.log")]
+    return templates.TemplateResponse("tasks.html", {"request": request, "lang": lang, "tasks": tasks})
+
+
 @app.get("/status/{task_id}", response_class=HTMLResponse)
 async def get_status(request: Request, task_id: str):
     lang = get_lang(request)
@@ -555,4 +567,4 @@ async def get_status_raw(task_id: str):
     
     with open(status_file, "r") as f:
         content = f.read()
-    return HTMLResponse(content=f"<pre>{content}</pre>")
+    return Response(content=content, media_type="text/plain")

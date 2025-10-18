@@ -18,6 +18,7 @@
                     <div class="card-body">
                         {% if user %}
                         <div class="d-flex justify-content-end align-items-center mb-3">
+                            <a href="/tasks" class="btn btn-sm btn-outline-primary me-3">All Tasks</a>
                             <img src="{{ avatar_url }}" alt="Avatar" class="rounded-circle" width="32" height="32">
                             <span class="ms-2">{{ user }}</span>
                             <a href="/logout" class="ms-3 btn btn-sm btn-outline-secondary">Logout</a>
