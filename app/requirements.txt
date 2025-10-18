@@ -6,5 +6,5 @@ gallery-dl
 aiohttp
 aiofiles
 itsdangerous
-gofile-api
+httpx
 
