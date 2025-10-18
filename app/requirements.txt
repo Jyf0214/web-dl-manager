@@ -8,8 +8,8 @@ aiofiles
 itsdangerous
 httpx
 beautifulsoup4==4.11.1
-Pillow==9.1.0
-requests==2.27.1
+Pillow==10.3.0
+requests==2.32.4
 yt_dlp==2022.4.8
 git+https://github.com/AlphaSlayer1964/kemono-dl.git
 
