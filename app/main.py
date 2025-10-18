@@ -1,12 +1,12 @@
 import os
 import uuid
 import asyncio
+import httpx
 from pathlib import Path
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from gofile import Gofile
 
 # --- Configuration ---
 BASE_DIR = Path(__file__).resolve().parent
@@ -48,6 +48,35 @@ async def run_command(command: str, status_file: Path):
     
     if process.returncode != 0:
         raise RuntimeError(f"Command failed: {command}. See status file for details: {status_file.name}")
+
+async def upload_to_gofile(file_path: Path, status_file: Path) -> str:
+    """Uploads a file to gofile.io and returns the download link."""
+    with open(status_file, "a") as f:
+        f.write("Uploading to gofile.io...\n")
+
+    async with httpx.AsyncClient() as client:
+        # 1. Get the best server
+        response = await client.get("https://api.gofile.io/getServer")
+        response.raise_for_status()
+        server = response.json()["data"]["server"]
+        upload_url = f"https://{server}.gofile.io/uploadFile"
+
+        # 2. Upload the file
+        with open(file_path, "rb") as f:
+            files = {"file": (file_path.name, f, "application/octet-stream")}
+            response = await client.post(upload_url, files=files)
+        response.raise_for_status()
+        upload_result = response.json()
+
+        if upload_result["status"] != "ok":
+            raise Exception(f"Gofile.io upload failed: {upload_result}")
+
+        download_link = upload_result["data"]["downloadPage"]
+        with open(status_file, "a") as f:
+            f.write(f"Gofile.io upload successful!\n")
+            f.write(f"Download link: {download_link}\n")
+        
+        return download_link
 
 def create_rclone_config(task_id: str, service: str, params: dict) -> Path:
     """Creates a temporary rclone config file."""
@@ -106,15 +135,7 @@ async def process_download_job(task_id: str, url: str, service: str, upload_path
 
         # 3. Upload
         if service == "gofile":
-            with open(status_file, "a") as f:
-                f.write("Uploading to gofile.io...\n")
-            
-            gofile_client = Gofile(token=params.get("gofile_token"))
-            upload_result = gofile_client.upload_file(task_archive_path)
-            
-            with open(status_file, "a") as f:
-                f.write(f"Gofile.io upload successful!\n")
-                f.write(f"Download link: {upload_result['downloadPage']}\n")
+            await upload_to_gofile(task_archive_path, status_file)
         else:
             rclone_config_path = create_rclone_config(task_id, service, params)
             remote_full_path = f"remote:{upload_path}"
