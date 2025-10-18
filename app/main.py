@@ -26,14 +26,39 @@ app = FastAPI(title="Gallery-DL Web UI")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 # --- Helper Functions ---
-async def get_random_proxy() -> str:
-    """Fetches a list of HTTP proxies and returns a random one."""
+async def get_working_proxy(status_file: Path) -> str:
+    """Fetches a list of HTTP proxies, tests them concurrently, and returns a working one."""
     proxy_list_url = "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt"
+    with open(status_file, "a") as f:
+        f.write("Fetching proxy list...\n")
     async with httpx.AsyncClient() as client:
         response = await client.get(proxy_list_url)
         response.raise_for_status()
         proxies = response.text.splitlines()
-        return random.choice(proxies)
+        
+    shuffled_proxies = random.sample(proxies, min(len(proxies), 10)) # Test up to 10 proxies
+
+    async def test_proxy(proxy):
+        try:
+            async with httpx.AsyncClient(proxies=f"http://{proxy}", timeout=5) as client:
+                response = await client.get("https://www.google.com", timeout=5)
+                response.raise_for_status()
+                return proxy
+        except Exception:
+            return None
+
+    with open(status_file, "a") as f:
+        f.write(f"Concurrently testing {len(shuffled_proxies)} proxies...\n")
+
+    tasks = [test_proxy(p) for p in shuffled_proxies]
+    for future in asyncio.as_completed(tasks):
+        result = await future
+        if result:
+            with open(status_file, "a") as f:
+                f.write(f"Found working proxy: {result}\n")
+            return result
+
+    raise Exception("Could not find a working proxy.")
 
 async def run_command(command: str, command_to_log: str, status_file: Path):
     """Runs a shell command asynchronously, logs its progress in real-time, and has a timeout."""
@@ -152,11 +177,7 @@ async def process_download_job(task_id: str, url: str, service: str, upload_path
 
         proxy = params.get("proxy")
         if params.get("auto_proxy"):
-            with open(status_file, "a") as f:
-                f.write("Auto-selecting proxy...\n")
-            proxy = await get_random_proxy()
-            with open(status_file, "a") as f:
-                f.write(f"Using proxy: {proxy}\n")
+            proxy = await get_working_proxy(status_file)
         
         gallery_dl_cmd = f"gallery-dl --verbose -D {task_download_dir}"
         if params.get("deviantart_client_id") and params.get("deviantart_client_secret"):
