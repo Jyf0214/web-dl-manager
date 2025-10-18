@@ -2,6 +2,7 @@ import os
 import uuid
 import asyncio
 import httpx
+import random
 from pathlib import Path
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -25,6 +26,15 @@ app = FastAPI(title="Gallery-DL Web UI")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 # --- Helper Functions ---
+async def get_random_proxy() -> str:
+    """Fetches a list of HTTP proxies and returns a random one."""
+    proxy_list_url = "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt"
+    async with httpx.AsyncClient() as client:
+        response = await client.get(proxy_list_url)
+        response.raise_for_status()
+        proxies = response.text.splitlines()
+        return random.choice(proxies)
+
 async def run_command(command: str, command_to_log: str, status_file: Path):
     """Runs a shell command asynchronously, logs its progress in real-time, and has a timeout."""
     with open(status_file, "a") as f:
@@ -139,19 +149,27 @@ async def process_download_job(task_id: str, url: str, service: str, upload_path
         # 1. Download using gallery-dl
         with open(status_file, "w") as f:
             f.write(f"Starting job {task_id} for URL: {url}\n")
+
+        proxy = params.get("proxy")
+        if params.get("auto_proxy"):
+            with open(status_file, "a") as f:
+                f.write("Auto-selecting proxy...\n")
+            proxy = await get_random_proxy()
+            with open(status_file, "a") as f:
+                f.write(f"Using proxy: {proxy}\n")
         
         gallery_dl_cmd = f"gallery-dl --verbose -D {task_download_dir}"
         if params.get("deviantart_client_id") and params.get("deviantart_client_secret"):
             gallery_dl_cmd += f" -o extractor.deviantart.client-id={params['deviantart_client_id']} -o extractor.deviantart.client-secret={params['deviantart_client_secret']}"
-        if params.get("proxy"):
-            gallery_dl_cmd += f" --proxy {params['proxy']}"
+        if proxy:
+            gallery_dl_cmd += f" --proxy {proxy}"
         gallery_dl_cmd += f" {url}"
 
         gallery_dl_cmd_log = f"gallery-dl --verbose -D {task_download_dir}"
         if params.get("deviantart_client_id") and params.get("deviantart_client_secret"):
             gallery_dl_cmd_log += f" -o extractor.deviantart.client-id={params['deviantart_client_id']} -o extractor.deviantart.client-secret=****"
-        if params.get("proxy"):
-            gallery_dl_cmd_log += f" --proxy {params['proxy']}"
+        if proxy:
+            gallery_dl_cmd_log += f" --proxy {proxy}"
         gallery_dl_cmd_log += f" {url}"
 
         await run_command(gallery_dl_cmd, gallery_dl_cmd_log, status_file)
@@ -233,6 +251,7 @@ async def create_download_job(
     deviantart_client_id: str = Form(None),
     deviantart_client_secret: str = Form(None),
     proxy: str = Form(None),
+    auto_proxy: bool = Form(False),
 ):
     """
     Accepts a download job, validates input, and starts it in the background.
