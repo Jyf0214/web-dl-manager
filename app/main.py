@@ -115,7 +115,10 @@ async def upload_to_gofile(file_path: Path, status_file: Path) -> str:
         # 1. Get the best server
         response = await client.get("https://api.gofile.io/servers")
         response.raise_for_status()
-        server = response.json()["data"]["server"]
+        response_json = response.json()
+        with open(status_file, "a") as f:
+            f.write(f"Gofile API Response: {response_json}\n")
+        server = response_json["data"]["server"]
         upload_url = f"https://{server}.gofile.io/uploadFile"
 
         # 2. Upload the file
