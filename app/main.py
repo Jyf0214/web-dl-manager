@@ -121,7 +121,7 @@ async def process_download_job(task_id: str, url: str, service: str, upload_path
         with open(status_file, "w") as f:
             f.write(f"Starting job {task_id} for URL: {url}\n")
         
-        gallery_dl_cmd = f"gallery-dl -D \"{task_download_dir}\" \"{url}\""
+        gallery_dl_cmd = f"gallery-dl --verbose -D \"{task_download_dir}\" \"{url}\""
         await run_command(gallery_dl_cmd, status_file)
 
         # 2. Compress the downloaded folder
