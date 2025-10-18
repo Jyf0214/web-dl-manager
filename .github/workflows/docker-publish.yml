@@ -13,6 +13,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      tags: ${{ steps.meta.outputs.tags }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -29,6 +31,9 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
@@ -57,7 +62,7 @@ jobs:
 
       - name: Run Docker container
         run: |
-          docker run -d --name gallery-dl-app -p 8000:8000 ghcr.io/${{ github.repository }}:main
+          docker run -d --name gallery-dl-app -p 8000:8000 ${{ needs.build_and_push.outputs.tags }}
 
       - name: Run cloudflared tunnel
         run: |
