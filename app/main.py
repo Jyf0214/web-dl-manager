@@ -140,15 +140,15 @@ async def process_download_job(task_id: str, url: str, service: str, upload_path
         with open(status_file, "w") as f:
             f.write(f"Starting job {task_id} for URL: {url}\n")
         
-        gallery_dl_cmd = f"gallery-dl --verbose -D \"{task_download_dir}\""
+        gallery_dl_cmd = f"gallery-dl --verbose -D {task_download_dir}"
         if params.get("deviantart_client_id") and params.get("deviantart_client_secret"):
             gallery_dl_cmd += f" -o extractor.deviantart.client-id={params['deviantart_client_id']} -o extractor.deviantart.client-secret={params['deviantart_client_secret']}"
-        gallery_dl_cmd += f" \"{url}\""
+        gallery_dl_cmd += f" {url}"
 
-        gallery_dl_cmd_log = f"gallery-dl --verbose -D \"{task_download_dir}\""
+        gallery_dl_cmd_log = f"gallery-dl --verbose -D {task_download_dir}"
         if params.get("deviantart_client_id") and params.get("deviantart_client_secret"):
             gallery_dl_cmd_log += f" -o extractor.deviantart.client-id={params['deviantart_client_id']} -o extractor.deviantart.client-secret=****"
-        gallery_dl_cmd_log += f" \"{url}\""
+        gallery_dl_cmd_log += f" {url}"
 
         await run_command(gallery_dl_cmd, gallery_dl_cmd_log, status_file)
 
