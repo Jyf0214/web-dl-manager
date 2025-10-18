@@ -26,28 +26,47 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 # --- Helper Functions ---
 async def run_command(command: str, status_file: Path):
-    """Runs a shell command asynchronously and logs its progress."""
+    """Runs a shell command asynchronously, logs its progress in real-time, and has a timeout."""
     with open(status_file, "a") as f:
         f.write(f"Executing command: {command}\n")
-    
+
     process = await asyncio.create_subprocess_shell(
         command,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE
     )
-    
-    stdout, stderr = await process.communicate()
-    
-    with open(status_file, "a") as f:
-        if process.returncode == 0:
-            f.write(f"Command finished successfully.\n")
-            f.write(f"STDOUT:\n{stdout.decode()}\n")
-        else:
-            f.write(f"Command failed with exit code {process.returncode}.\n")
-            f.write(f"STDERR:\n{stderr.decode()}\n")
-    
+
+    async def log_stream(stream, log_prefix):
+        while True:
+            line = await stream.readline()
+            if not line:
+                break
+            with open(status_file, "a") as f:
+                f.write(f"{log_prefix}: {line.decode()}")
+
+    try:
+        await asyncio.wait_for(
+            asyncio.gather(
+                log_stream(process.stdout, "STDOUT"),
+                log_stream(process.stderr, "STDERR")
+            ),
+            timeout=900  # 15 minutes timeout
+        )
+        await process.wait()
+    except asyncio.TimeoutError:
+        process.kill()
+        await process.wait()
+        with open(status_file, "a") as f:
+            f.write("\n--- COMMAND TIMED OUT ---\n")
+        raise RuntimeError(f"Command timed out after 15 minutes: {command}")
+
     if process.returncode != 0:
-        raise RuntimeError(f"Command failed: {command}. See status file for details: {status_file.name}")
+        with open(status_file, "a") as f:
+            f.write(f"\n--- COMMAND FAILED (Exit Code: {process.returncode}) ---\n")
+        raise RuntimeError(f"Command failed with exit code {process.returncode}. See status file for details: {status_file.name}")
+    else:
+        with open(status_file, "a") as f:
+            f.write("\nCommand finished successfully.\n")
 
 async def upload_to_gofile(file_path: Path, status_file: Path) -> str:
     """Uploads a file to gofile.io and returns the download link."""
