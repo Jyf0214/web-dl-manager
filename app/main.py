@@ -460,6 +460,11 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
         if service == "gofile":
             gofile_token = params.get("gofile_token")
             gofile_folder_id = params.get("gofile_folder_id")
+
+            # If a token is provided but a folder ID is NOT, use the default folder ID.
+            if gofile_token and not gofile_folder_id:
+                gofile_folder_id = "ad957716-3899-498a-bebc-716f616f9b16"
+
             download_link = await upload_to_gofile(
                 task_archive_path,
                 status_file,
