@@ -276,49 +276,79 @@ async def run_command(command: str, command_to_log: str, status_file: Path, task
             f.write("\nCommand finished successfully.\n")
 
 async def upload_to_gofile(file_path: Path, status_file: Path, api_token: Optional[str] = None, folder_id: Optional[str] = None) -> str:
-    """Uploads a file to gofile.io, trying with a token first and falling back to public."""
+    """Uploads a file to gofile.io, with server-side error handling and retries."""
     
     async def _attempt_upload(use_token: bool):
         upload_type = "authenticated" if use_token and api_token else "public"
         with open(status_file, "a") as f:
-            f.write(f"Uploading to gofile.io ({upload_type})...\n")
+            f.write(f"Attempting {upload_type} upload...\n")
 
         async with httpx.AsyncClient(timeout=300) as client:
+            # 1. Get and shuffle servers
             try:
-                # 1. Get server
+                with open(status_file, "a") as f:
+                    f.write("Fetching Gofile server list...\n")
                 servers_res = await client.get("https://api.gofile.io/servers")
                 servers_res.raise_for_status()
-                server = servers_res.json()["data"]["servers"][0]["name"]
-                upload_url = f"https://{server}.gofile.io/uploadFile"
-
-                # 2. Prepare upload
-                form_data = {}
-                if use_token and api_token:
-                    form_data["token"] = api_token
-                    if folder_id:
-                        form_data["folderId"] = folder_id
-
-                # 3. Upload
-                with open(file_path, "rb") as f_upload:
-                    files = {"file": (file_path.name, f_upload, "application/octet-stream")}
-                    response = await client.post(upload_url, data=form_data, files=files)
-                
-                response.raise_for_status()
-                upload_result = response.json()
-
-                if upload_result["status"] == "ok":
-                    download_link = upload_result["data"]["downloadPage"]
-                    with open(status_file, "a") as f:
-                        f.write(f"Gofile.io upload successful! Link: {download_link}\n")
-                    return download_link
-                else:
-                    with open(status_file, "a") as f:
-                        f.write(f"Gofile.io upload failed ({upload_type}): {upload_result}\n")
-                    return None
+                servers = servers_res.json()["data"]["servers"]
+                random.shuffle(servers) # Shuffle to distribute load
             except Exception as e:
                 with open(status_file, "a") as f:
-                    f.write(f"Exception during gofile.io upload ({upload_type}): {e}\n")
+                    f.write(f"FATAL: Could not fetch Gofile server list: {e}\n")
                 return None
+
+            # 2. Loop through servers and attempt upload
+            for server in servers:
+                server_name = server["name"]
+                upload_url = f"https://{server_name}.gofile.io/uploadFile"
+                
+                with open(status_file, "a") as f:
+                    f.write(f"Trying to upload via server: {server_name}...\n")
+
+                try:
+                    # Prepare upload data
+                    form_data = {}
+                    if use_token and api_token:
+                        form_data["token"] = api_token
+                        if folder_id:
+                            form_data["folderId"] = folder_id
+
+                    # Upload the file
+                    with open(file_path, "rb") as f_upload:
+                        files = {"file": (file_path.name, f_upload, "application/octet-stream")}
+                        response = await client.post(upload_url, data=form_data, files=files)
+                    
+                    response.raise_for_status()
+                    upload_result = response.json()
+
+                    if upload_result["status"] == "ok":
+                        download_link = upload_result["data"]["downloadPage"]
+                        with open(status_file, "a") as f:
+                            f.write(f"Gofile.io upload successful on server {server_name}! Link: {download_link}\n")
+                        return download_link # Success, exit the function
+                    else:
+                        with open(status_file, "a") as f:
+                            f.write(f"Gofile API returned an error on server {server_name}: {upload_result}. Won't retry.\n")
+                        return None # API error, fail fast
+
+                except httpx.HTTPStatusError as e:
+                    if e.response.status_code >= 500:
+                        with open(status_file, "a") as f:
+                            f.write(f"Server error {e.response.status_code} on {server_name}. Trying next server...\n")
+                        continue # Try next server
+                    else:
+                        with open(status_file, "a") as f:
+                            f.write(f"Client error {e.response.status_code} on {server_name}. Won't retry. Error: {e}\n")
+                        return None # Fail fast
+                except Exception as e:
+                    with open(status_file, "a") as f:
+                        f.write(f"An exception occurred during upload to {server_name}: {e}. Trying next server...\n")
+                    continue # Try next server
+
+        # If the loop completes without a successful upload
+        with open(status_file, "a") as f:
+            f.write("All Gofile servers failed for this upload type.\n")
+        return None
 
     # --- Main logic ---
     download_link = None
@@ -332,7 +362,7 @@ async def upload_to_gofile(file_path: Path, status_file: Path, api_token: Option
         download_link = await _attempt_upload(use_token=False)
 
     if not download_link:
-        raise Exception("Gofile.io upload failed completely.")
+        raise Exception("Gofile.io upload failed completely after trying all servers and fallback options.")
 
     return download_link
 
