@@ -42,10 +42,6 @@
 
                         <div class="d-flex justify-content-between align-items-center mt-3">
                             <a href="/" class="btn btn-primary">{{ lang.start_new_job_button }}</a>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" role="switch" id="auto-refresh-switch" checked>
-                                <label class="form-check-label" for="auto-refresh-switch">{{ lang.auto_refresh_label }}</label>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -67,45 +63,30 @@
         const logContainer = document.getElementById('log-container');
         const logContentElement = logContainer.querySelector('code');
         const copyButton = document.getElementById('copy-button');
-        const autoRefreshSwitch = document.getElementById('auto-refresh-switch');
-        let intervalId;
+        
+        const socket = new WebSocket(`ws://${window.location.host}/ws/status/${taskId}`);
 
-        async function fetchLog() {
-            try {
-                const response = await fetch(`/status/${taskId}/raw`);
-                if (response.ok) {
-                    const text = await response.text();
-                    logContentElement.textContent = text;
-                    // Scroll to the bottom
-                    logContainer.scrollTop = logContainer.scrollHeight;
-                } else {
-                    console.error('Failed to fetch log:', response.statusText);
-                }
-            } catch (error) {
-                console.error('Error fetching log:', error);
-            }
-        }
+        socket.onopen = function(event) {
+            console.log("WebSocket connection established.");
+            logContentElement.textContent = ""; // Clear initial content
+        };
 
-        function startAutoRefresh() {
-            if (!intervalId) {
-                intervalId = setInterval(fetchLog, 5000);
-            }
-        }
+        socket.onmessage = function(event) {
+            logContentElement.textContent += event.data;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        };
 
-        function stopAutoRefresh() {
-            if (intervalId) {
-                clearInterval(intervalId);
-                intervalId = null;
-            }
-        }
-
-        autoRefreshSwitch.addEventListener('change', () => {
-            if (autoRefreshSwitch.checked) {
-                startAutoRefresh();
+        socket.onclose = function(event) {
+            if (event.wasClean) {
+                console.log(`WebSocket connection closed cleanly, code=${event.code}, reason=${event.reason}`);
             } else {
-                stopAutoRefresh();
+                console.error('WebSocket connection died');
             }
-        });
+        };
+
+        socket.onerror = function(error) {
+            console.error(`WebSocket error: ${error.message}`);
+        };
 
         copyButton.addEventListener('click', () => {
             navigator.clipboard.writeText(logContentElement.textContent).then(() => {
@@ -118,10 +99,6 @@
                 console.error('Failed to copy text: ', err);
             });
         });
-
-        // Initial fetch and start auto-refresh
-        fetchLog();
-        startAutoRefresh();
     </script>
 </body>
 </html>

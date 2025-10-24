@@ -7,7 +7,7 @@ import shutil
 import json
 import signal
 from pathlib import Path
-from fastapi import FastAPI, Request, Form, HTTPException
+from fastapi import FastAPI, Request, Form, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -810,3 +810,31 @@ async def get_status_raw(task_id: str):
     with open(status_file, "r") as f:
         content = f.read()
     return Response(content=content, media_type="text/plain")
+
+
+@app.websocket("/ws/status/{task_id}")
+async def websocket_endpoint(websocket: WebSocket, task_id: str):
+    await websocket.accept()
+    status_file = STATUS_DIR / f"{task_id}.log"
+    
+    if not status_file.exists():
+        await websocket.send_text("Log file not found.")
+        await websocket.close()
+        return
+
+    try:
+        with open(status_file, "r") as f:
+            # Send the whole file content first
+            await websocket.send_text(f.read())
+            while True:
+                line = f.readline()
+                if not line:
+                    await asyncio.sleep(0.1) # a little sleep to not hog the cpu
+                    continue
+                await websocket.send_text(line)
+    except WebSocketDisconnect:
+        print(f"Client disconnected from task {task_id}")
+    except Exception as e:
+        print(f"An error occurred in websocket for task {task_id}: {e}")
+    finally:
+        await websocket.close()
