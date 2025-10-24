@@ -8,7 +8,7 @@ import json
 import signal
 from pathlib import Path
 from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
@@ -545,24 +545,34 @@ app.mount("/assets", StaticFiles(directory="/app/static_site/assets"), name="ass
 # --- API Endpoints ---
 
 
-@app.get("/robots.txt", response_class=PlainTextResponse)
-async def robots_txt():
-    return "User-agent: *\nDisallow: /"
-
-
 @app.get("/", response_class=HTMLResponse)
 async def get_blog_index(request: Request):
-    lang = get_lang(request)
-    user = request.session.get("user")
-    return templates.TemplateResponse("index.html", {"request": request, "lang": lang, "user": user})
+    blog_index = Path("/app/static_site/index.html")
+    if blog_index.exists():
+        with open(blog_index, "r") as f:
+            content = f.read()
+        # Inject signin popup
+        content = content.replace("</body>", """
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                setTimeout(function() {
+                    if (!document.cookie.includes("user=")) {
+                        if (confirm("Sign in to access the downloader.")) {
+                            window.location.href = "/login";
+                        }
+                    }
+                }, 3000);
+            });
+        </script>
+        </body>""")
+        return HTMLResponse(content=content)
+    return templates.TemplateResponse("index.html", {"request": request, "lang": get_lang(request)})
 
 @app.get("/downloader", response_class=HTMLResponse)
 async def get_downloader(request: Request):
     lang = get_lang(request)
     user = request.session.get("user")
-    # Always require authentication regardless of PRIVATE_MODE
-    # This ensures that even with wrong login records, users cannot access hidden info
-    if not user:
+    if PRIVATE_MODE and not user:
         return RedirectResponse(url="/login", status_code=302)
     return templates.TemplateResponse("downloader.html", {"request": request, "lang": lang, "user": user, "avatar_url": AVATAR_URL})
 
@@ -617,10 +627,6 @@ async def create_download_job(
     proxy: str = Form(None),
     auto_proxy: bool = Form(False),
 ):
-    # Require authentication for download endpoint
-    user = request.session.get("user")
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
     """
     Accepts a download job, validates input, and starts it in the background.
     """
@@ -662,9 +668,7 @@ async def create_download_job(
 async def get_tasks(request: Request):
     lang = get_lang(request)
     user = request.session.get("user")
-    # Always require authentication regardless of PRIVATE_MODE
-    # This ensures that even with wrong login records, users cannot access hidden info
-    if not user:
+    if PRIVATE_MODE and not user:
         return RedirectResponse(url="/login", status_code=302)
 
     tasks = []
@@ -682,13 +686,8 @@ async def get_tasks(request: Request):
     return templates.TemplateResponse("tasks.html", {"request": request, "lang": lang, "tasks": tasks})
 
 @app.post("/retry/{task_id}")
-async def retry_task(task_id: str, request: Request):
+async def retry_task(task_id: str):
     """Retries a failed task by starting a new job with the original parameters."""
-    # Require authentication for retry endpoint
-    user = request.session.get("user")
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
     status_path = get_task_status_path(task_id)
     if not status_path.exists():
         raise HTTPException(status_code=404, detail="Task to retry not found.")
@@ -733,13 +732,8 @@ async def retry_task(task_id: str, request: Request):
 
 
 @app.post("/pause/{task_id}")
-async def pause_task(task_id: str, request: Request):
+async def pause_task(task_id: str):
     """Pauses a running task by sending SIGSTOP."""
-    # Require authentication for pause endpoint
-    user = request.session.get("user")
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
     status_path = get_task_status_path(task_id)
     if not status_path.exists():
         raise HTTPException(status_code=404, detail="Task not found.")
@@ -765,13 +759,8 @@ async def pause_task(task_id: str, request: Request):
 
 
 @app.post("/resume/{task_id}")
-async def resume_task(task_id: str, request: Request):
+async def resume_task(task_id: str):
     """Resumes a paused task by sending SIGCONT."""
-    # Require authentication for resume endpoint
-    user = request.session.get("user")
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
     status_path = get_task_status_path(task_id)
     if not status_path.exists():
         raise HTTPException(status_code=404, detail="Task not found.")
@@ -798,11 +787,6 @@ async def resume_task(task_id: str, request: Request):
 
 @app.get("/status/{task_id}", response_class=HTMLResponse)
 async def get_status(request: Request, task_id: str):
-    # Require authentication for status endpoint
-    user = request.session.get("user")
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
     lang = get_lang(request)
     status_file = STATUS_DIR / f"{task_id}.log"
     if not status_file.exists():
@@ -817,13 +801,8 @@ async def get_status(request: Request, task_id: str):
     )
 
 @app.get("/status/{task_id}/raw")
-async def get_status_raw(request: Request, task_id: str):
+async def get_status_raw(task_id: str):
     """Returns the raw log file content."""
-    # Require authentication for raw status endpoint
-    user = request.session.get("user")
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
     status_file = STATUS_DIR / f"{task_id}.log"
     if not status_file.exists():
         raise HTTPException(status_code=404, detail="Job not found.")
