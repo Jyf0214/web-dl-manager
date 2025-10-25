@@ -1,3 +1,8 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+
 # Temporary test files
 gofile_test.py
 gofile_auth_test.py
