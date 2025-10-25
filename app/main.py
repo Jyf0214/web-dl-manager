@@ -6,6 +6,7 @@ import random
 import shutil
 import json
 import signal
+import subprocess
 from pathlib import Path
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -387,7 +388,16 @@ def create_rclone_config(task_id: str, service: str, params: dict) -> Path:
         config_content += f"url = {params['webdav_url']}\n"
         config_content += f"vendor = other\n"
         config_content += f"user = {params['webdav_user']}\n"
-        config_content += f"pass = {params['webdav_pass']}\n" # In a real app, use rclone obscure
+        
+        # Obscure the password
+        obscured_pass_process = subprocess.run(
+            ["rclone", "obscure", params['webdav_pass']],
+            capture_output=True,
+            text=True
+        )
+        obscured_pass = obscured_pass_process.stdout.strip()
+        config_content += f"pass = {obscured_pass}\n"
+        
     elif service == "s3":
         config_content += f"provider = {params.get('s3_provider', 'AWS')}\n"
         config_content += f"access_key_id = {params['s3_access_key_id']}\n"
@@ -512,7 +522,7 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
             remote_full_path = f"remote:{upload_path}"
             upload_cmd = (
                 f"rclone copyto --config \"{rclone_config_path}\" \"{task_archive_path}\" \"{remote_full_path}/{task_id}.zst\" "
-                f"-P --log-file=\"{status_file}\" --log-level=INFO"
+                f"-P --log-file=\"{status_file}\" --log-level=ERROR 2>/dev/null"
             )
             await run_command(upload_cmd, upload_cmd, status_file, task_id)
             update_task_status(task_id, {"status": "completed"})
