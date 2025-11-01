@@ -9,11 +9,12 @@ import signal
 import subprocess
 from pathlib import Path
 from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from typing import Optional, Dict, Any
+from pydantic import BaseModel
 
 # --- Configuration ---
 BASE_DIR = Path(__file__).resolve().parent
@@ -31,10 +32,6 @@ AVATAR_URL = os.getenv("AVATAR_URL", "https://github.com/Jyf0214.png")
 os.makedirs(DOWNLOADS_DIR, exist_ok=True)
 os.makedirs(ARCHIVES_DIR, exist_ok=True)
 os.makedirs(STATUS_DIR, exist_ok=True)
-
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
 
 # --- Translations ---
 LANGUAGES = {
@@ -202,8 +199,6 @@ active_tasks = 0
 task_lock = asyncio.Lock()
 
 # --- Cloudflared Tunnel Management ---
-from pydantic import BaseModel
-
 tunnel_process: Optional[asyncio.subprocess.Process] = None
 tunnel_log = ""
 tunnel_lock = asyncio.Lock()
@@ -247,42 +242,6 @@ async def launch_tunnel(token: str):
         except Exception as e:
             tunnel_log += f"Failed to start tunnel: {e}\n"
             return {"message": f"Failed to start tunnel: {e}"}
-
-@app.on_event("startup")
-async def startup_event():
-    cloudflared_token = os.getenv("CLOUDFLARED_TOKEN")
-    if cloudflared_token:
-        print("Found CLOUDFLARED_TOKEN, attempting to start tunnel automatically.")
-        await launch_tunnel(cloudflared_token)
-
-@app.post("/tunnel/start")
-async def start_tunnel(request: TunnelRequest):
-    return await launch_tunnel(request.token)
-
-@app.post("/tunnel/stop")
-async def stop_tunnel():
-    global tunnel_process, tunnel_log
-    async with tunnel_lock:
-        if not tunnel_process or tunnel_process.returncode is not None:
-            return {"message": "Tunnel is not running."}
-
-        tunnel_log += "Stopping tunnel...\n"
-        try:
-            os.killpg(os.getpgid(tunnel_process.pid), signal.SIGTERM)
-            await tunnel_process.wait()
-            tunnel_log += "Tunnel stopped.\n"
-            return {"message": "Tunnel stopped successfully."}
-        except Exception as e:
-            tunnel_log += f"Failed to stop tunnel: {e}\n"
-            return {"message": f"Failed to stop tunnel: {e}"}
-
-@app.get("/tunnel/status")
-async def tunnel_status():
-    global tunnel_process, tunnel_log
-    async with tunnel_lock:
-        running = tunnel_process and tunnel_process.returncode is None
-        return {"running": running, "log": tunnel_log}
-
 
 # --- Helper Functions ---
 async def cleanup_directories():
@@ -652,25 +611,50 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
             if rclone_config_path.exists():
                 rclone_config_path.unlink()
 
-
-
-# Mount all directories in the static site root
-static_site_dir = Path("/app/static_site")
-if static_site_dir.is_dir():
-    for item in static_site_dir.iterdir():
-        if item.is_dir():
-            app.mount(f"/{item.name}", StaticFiles(directory=item), name=item.name)
-
-
-
 # --- API Endpoints ---
+@app.on_event("startup")
+async def startup_event():
+    cloudflared_token = os.getenv("CLOUDFLARED_TOKEN")
+    if cloudflared_token:
+        print("Found CLOUDFLARED_TOKEN, attempting to start tunnel automatically.")
+        await launch_tunnel(cloudflared_token)
 
+@app.post("/tunnel/start")
+async def start_tunnel(request: TunnelRequest):
+    return await launch_tunnel(request.token)
+
+@app.post("/tunnel/stop")
+async def stop_tunnel():
+    global tunnel_process, tunnel_log
+    async with tunnel_lock:
+        if not tunnel_process or tunnel_process.returncode is not None:
+            return {"message": "Tunnel is not running."}
+
+        tunnel_log += "Stopping tunnel...\n"
+        try:
+            os.killpg(os.getpgid(tunnel_process.pid), signal.SIGTERM)
+            await tunnel_process.wait()
+            tunnel_log += "Tunnel stopped.\n"
+            return {"message": "Tunnel stopped successfully."}
+        except Exception as e:
+            tunnel_log += f"Failed to stop tunnel: {e}\n"
+            return {"message": f"Failed to stop tunnel: {e}"}
+
+@app.get("/tunnel/status")
+async def tunnel_status():
+    global tunnel_process, tunnel_log
+    async with tunnel_lock:
+        running = tunnel_process and tunnel_process.returncode is None
+        return {"running": running, "log": tunnel_log}
 
 @app.get("/", response_class=HTMLResponse)
 async def get_blog_index(request: Request):
+    # This route is specifically kept to inject the login popup script.
+    # If the static site's index.html needs to be served without modification,
+    # this entire endpoint can be removed, and StaticFiles will handle it.
     blog_index = Path("/app/static_site/index.html")
     if blog_index.exists():
-        with open(blog_index, "r") as f:
+        with open(blog_index, "r", encoding="utf-8") as f:
             content = f.read()
         # Inject signin popup
         content = content.replace("</body>", """
@@ -687,6 +671,7 @@ async def get_blog_index(request: Request):
         </script>
         </body>""")
         return HTMLResponse(content=content)
+    # Fallback to the Jinja2 template if the static file doesn't exist.
     return templates.TemplateResponse("index.html", {"request": request, "lang": get_lang(request)})
 
 @app.get("/downloader", response_class=HTMLResponse)
@@ -932,3 +917,10 @@ async def get_status_raw(task_id: str):
     with open(status_file, "r") as f:
         content = f.read()
     return Response(content=content, media_type="text/plain")
+
+# --- Static Files Mounting (The Correct Way) ---
+# This MUST be placed AFTER all other API routes.
+# It acts as a fallback to serve static files if no API route matches.
+static_site_dir = Path("/app/static_site")
+if static_site_dir.is_dir():
+    app.mount("/", StaticFiles(directory=static_site_dir, html=True), name="static_site")
