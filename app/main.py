@@ -654,15 +654,13 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
 
 
 
-# Mount static assets from the cloned site
+# Mount all directories in the static site root
 static_site_dir = Path("/app/static_site")
-# Common static directories found in many web frontends
-static_dirs_to_mount = ["css", "js", "anzhiyu", "font", "img"] 
+if static_site_dir.is_dir():
+    for item in static_site_dir.iterdir():
+        if item.is_dir():
+            app.mount(f"/{item.name}", StaticFiles(directory=item), name=item.name)
 
-for dir_name in static_dirs_to_mount:
-    physical_dir = static_site_dir / dir_name
-    if physical_dir.is_dir():
-        app.mount(f"/{dir_name}", StaticFiles(directory=physical_dir), name=dir_name)
 
 
 # --- API Endpoints ---
