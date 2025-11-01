@@ -45,6 +45,11 @@
                         <h1 class="card-title mb-4">{{ lang.job_status_title }}</h1>
                         <p class="text-muted">{{ lang.task_id_label }} <span class="font-monospace">{{ task_id }}</span></p>
                         
+                        <div class="d-flex justify-content-end align-items-center mb-2">
+                            <button class="btn btn-sm btn-outline-secondary me-2" id="decrease-font-size">A-</button>
+                            <button class="btn btn-sm btn-outline-secondary" id="increase-font-size">A+</button>
+                        </div>
+
                         <div class="mb-3">
                             <h5 class="log-header" data-bs-toggle="collapse" data-bs-target="#downloadLogCollapse" aria-expanded="true" aria-controls="downloadLogCollapse">
                                 <i class="bi bi-caret-down-fill"></i> Download Log
@@ -105,6 +110,8 @@
         const copyDownloadLogButton = document.getElementById('copy-download-log-button');
         const copyTunnelLogButton = document.getElementById('copy-tunnel-log-button');
         const autoRefreshSwitch = document.getElementById('auto-refresh-switch');
+        const decreaseFontSizeButton = document.getElementById('decrease-font-size');
+        const increaseFontSizeButton = document.getElementById('increase-font-size');
         let intervalId;
 
         async function fetchLogs() {
@@ -135,7 +142,7 @@
 
         function startAutoRefresh() {
             if (!intervalId) {
-                intervalId = setInterval(fetchLogs, 5000);
+                intervalId = setInterval(fetchLogs, 2000); // Refresh every 2 seconds
             }
         }
 
@@ -146,6 +153,14 @@
             }
         }
 
+        function changeFontSize(amount) {
+            const logContainers = [downloadLogContainer, tunnelLogContainer];
+            logContainers.forEach(container => {
+                const currentSize = parseFloat(window.getComputedStyle(container, null).getPropertyValue('font-size'));
+                container.style.fontSize = (currentSize + amount) + 'px';
+            });
+        }
+
         autoRefreshSwitch.addEventListener('change', () => {
             if (autoRefreshSwitch.checked) {
                 startAutoRefresh();
@@ -153,6 +168,9 @@
                 stopAutoRefresh();
             }
         });
+
+        decreaseFontSizeButton.addEventListener('click', () => changeFontSize(-1));
+        increaseFontSizeButton.addEventListener('click', () => changeFontSize(1));
 
         function setupCopyButton(button, contentElement) {
             button.addEventListener('click', () => {

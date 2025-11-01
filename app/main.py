@@ -895,6 +895,23 @@ async def resume_task(task_id: str):
     return RedirectResponse("/tasks", status_code=303)
 
 
+@app.post("/delete/{task_id}")
+async def delete_task(task_id: str):
+    """Deletes a task by removing its status and log files."""
+    status_path = get_task_status_path(task_id)
+    log_path = STATUS_DIR / f"{task_id}.log"
+
+    if not status_path.exists() and not log_path.exists():
+        raise HTTPException(status_code=404, detail="Task not found.")
+
+    if status_path.exists():
+        status_path.unlink()
+    if log_path.exists():
+        log_path.unlink()
+
+    return RedirectResponse("/tasks", status_code=303)
+
+
 @app.get("/status/{task_id}", response_class=HTMLResponse)
 async def get_status(request: Request, task_id: str):
     lang = get_lang(request)
