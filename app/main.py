@@ -556,8 +556,11 @@ async def upload_uncompressed(task_id: str, service: str, upload_path: str, para
             
             token = openlist.login(openlist_url, openlist_user, openlist_pass, status_file)
             
-            # Create the base directory for the task
-            remote_task_dir = f"{upload_path}/{task_id}"
+            # Conditionally create the base directory for the task
+            if "terabox" in upload_path:
+                remote_task_dir = upload_path
+            else:
+                remote_task_dir = f"{upload_path}/{task_id}"
             openlist.create_directory(openlist_url, token, remote_task_dir, status_file)
             
             task_download_dir = DOWNLOADS_DIR / task_id
@@ -587,7 +590,12 @@ async def upload_uncompressed(task_id: str, service: str, upload_path: str, para
 
     task_download_dir = DOWNLOADS_DIR / task_id
     rclone_config_path = create_rclone_config(task_id, service, params)
-    remote_full_path = f"remote:{upload_path}/{task_id}"
+    
+    if "terabox" in upload_path:
+        remote_full_path = f"remote:{upload_path}"
+    else:
+        remote_full_path = f"remote:{upload_path}/{task_id}"
+        
     upload_cmd = (
         f"rclone copy --config \"{rclone_config_path}\" \"{task_download_dir}\" \"{remote_full_path}\" "
         f"-P --log-file=\"{status_file}\" --log-level=ERROR --retries 50"
