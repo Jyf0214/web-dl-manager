@@ -9,3 +9,4 @@ itsdangerous
 httpx
 starlette
 python-jose
+gofilepy-api
