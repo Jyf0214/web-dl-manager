@@ -52,7 +52,8 @@ LANGUAGES = {
         "client_id_label": "Client ID",
         "client_secret_label": "Client Secret",
         "rate_limit_title": "Rate Limit",
-        "rate_limit_text": "Limit download speed (e.g., 500K, 2M).",
+        "rate_limit_text": "Limit download and upload speed (e.g., 500K, 2M).",
+        "upload_rate_limit_text": "Limit upload speed (e.g., 500K, 2M).",
         "rate_limit_label": "Rate Limit",
         "proxy_text": "Use a proxy to bypass IP blocks (e.g., from CloudFront).",
         "proxy_label": "Proxy URL",
@@ -126,7 +127,8 @@ LANGUAGES = {
         "client_id_label": "客户端 ID",
         "client_secret_label": "客户端密钥",
         "rate_limit_title": "速度限制",
-        "rate_limit_text": "限制下载速度 (例如, 500K, 2M).",
+        "rate_limit_text": "限制下载和上传速度 (例如, 500K, 2M).",
+        "upload_rate_limit_text": "限制上传速度 (例如, 500K, 2M).",
         "rate_limit_label": "速度限制",
         "proxy_text": "使用代理绕过 IP 封锁（例如来自 CloudFront）。",
         "proxy_label": "代理 URL",
@@ -299,8 +301,8 @@ async def run_command(command: str, command_to_log: str, status_file: Path, task
 
     process = await asyncio.create_subprocess_shell(
         command,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.DEVNULL,
         preexec_fn=os.setsid  # Create a new process group
     )
 
@@ -311,18 +313,6 @@ async def run_command(command: str, command_to_log: str, status_file: Path, task
         # Process might have finished very quickly
         pass
 
-    async def log_stream(stream, log_prefix):
-        while True:
-            line = await stream.readline()
-            if not line:
-                break
-            with open(status_file, "a") as f:
-                f.write(f"{log_prefix}: {line.decode()}")
-
-    await asyncio.gather(
-        log_stream(process.stdout, "STDOUT"),
-        log_stream(process.stderr, "STDERR")
-    )
     await process.wait()
 
     # Clear the pgid when the command is finished
@@ -587,8 +577,11 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
             remote_full_path = f"remote:{upload_path}"
             upload_cmd = (
                 f"rclone copyto --config \"{rclone_config_path}\" \"{task_archive_path}\" \"{remote_full_path}/{task_id}.zst\" "
-                f"-P --log-file=\"{status_file}\" --log-level=ERROR 2>/dev/null"
+                f"-P --log-file=\"{status_file}\" --log-level=ERROR"
             )
+            if params.get("upload_rate_limit"):
+                upload_cmd += f" --bwlimit {params['upload_rate_limit']}"
+            upload_cmd += " 2>/dev/null"
             await run_command(upload_cmd, upload_cmd, status_file, task_id)
             update_task_status(task_id, {"status": "completed"})
         
@@ -734,7 +727,8 @@ async def create_download_job(
     # DeviantArt
     deviantart_client_id: str = Form(None),
     deviantart_client_secret: str = Form(None),
-    rate_limit: str = Form(None),
+    rate_limit: str = Form("2M"),
+    upload_rate_limit: str = Form("1M"),
     proxy: str = Form(None),
     auto_proxy: bool = Form(False),
     enable_compression: bool = Form(True),
