@@ -109,6 +109,8 @@ LANGUAGES = {
         "stop_tunnel_button": "Stop Tunnel",
         "tunnel_status_title": "Tunnel Status",
         "enable_compression_label": "Enable Compression",
+        "split_compression_label": "Split Compression",
+        "split_size_label": "Split Size (MB)",
     },
     "zh": {
         "app_title": "Gallery-DL & Kemono-DL 网页版",
@@ -184,6 +186,8 @@ LANGUAGES = {
         "stop_tunnel_button": "停止隧道",
         "tunnel_status_title": "隧道状态",
         "enable_compression_label": "启用压缩",
+        "split_compression_label": "分卷压缩",
+        "split_size_label": "分卷大小 (MB)",
     }
 }
 
@@ -505,11 +509,69 @@ def update_task_status(task_id: str, updates: Dict[str, Any]):
     with open(status_path, "w") as f:
         json.dump(status_data, f, indent=4)
 
-async def process_download_job(task_id: str, url: str, downloader: str, service: str, upload_path: str, params: dict, enable_compression: bool = True):
+async def upload_uncompressed(task_id: str, service: str, upload_path: str, params: dict, status_file: Path):
+    """Uploads the uncompressed files to the remote storage."""
+    if service == "gofile":
+        with open(status_file, "a") as f:
+            f.write("\nUncompressed upload is not supported for gofile.io.\n")
+        return
+
+    task_download_dir = DOWNLOADS_DIR / task_id
+    rclone_config_path = create_rclone_config(task_id, service, params)
+    remote_full_path = f"remote:{upload_path}/{task_id}"
+    upload_cmd = (
+        f"rclone copy --config \"{rclone_config_path}\" \"{task_download_dir}\" \"{remote_full_path}\" "
+        f"-P --log-file=\"{status_file}\" --log-level=ERROR"
+    )
+    if params.get("upload_rate_limit"):
+        upload_cmd += f" --bwlimit {params['upload_rate_limit']}"
+    upload_cmd += " 2>/dev/null"
+    await run_command(upload_cmd, upload_cmd, status_file, task_id)
+
+async def compress_in_chunks(task_id: str, source_dir: Path, archive_name_base: str, max_size: int, status_file: Path) -> list[Path]:
+    """Compresses files in chunks of a given size."""
+    archive_paths = []
+    files_to_compress = []
+    current_size = 0
+    chunk_number = 1
+
+    for item in source_dir.rglob("*"):
+        if item.is_file():
+            file_size = item.stat().st_size
+            if current_size + file_size > max_size and files_to_compress:
+                # Compress the current chunk
+                archive_path = ARCHIVES_DIR / f"{archive_name_base}_{chunk_number}.tar.zst"
+                with open(status_file, "a") as f:
+                    f.write(f"\nCompressing chunk {chunk_number} to {archive_path.name}...\n")
+                files_str = " ".join([f"\"{f.relative_to(source_dir)}\"" for f in files_to_compress])
+                compress_cmd = f"tar -cf - -C \"{source_dir}\" {files_str} | zstd -o \"{archive_path}\""
+                await run_command(compress_cmd, compress_cmd, status_file, task_id)
+                archive_paths.append(archive_path)
+                
+                # Start a new chunk
+                files_to_compress = []
+                current_size = 0
+                chunk_number += 1
+            
+            files_to_compress.append(item)
+            current_size += file_size
+
+    # Compress the last remaining chunk
+    if files_to_compress:
+        archive_path = ARCHIVES_DIR / f"{archive_name_base}_{chunk_number}.tar.zst"
+        with open(status_file, "a") as f:
+            f.write(f"\nCompressing chunk {chunk_number} to {archive_path.name}...\n")
+        files_str = " ".join([f"\"{f.relative_to(source_dir)}\"" for f in files_to_compress])
+        compress_cmd = f"tar -cf - -C \"{source_dir}\" {files_str} | zstd -o \"{archive_path}\""
+        await run_command(compress_cmd, compress_cmd, status_file, task_id)
+        archive_paths.append(archive_path)
+
+    return archive_paths
+
+async def process_download_job(task_id: str, url: str, downloader: str, service: str, upload_path: str, params: dict, enable_compression: bool = True, split_compression: bool = False, split_size: int = 1000):
     """The main background task for a download job."""
     task_download_dir = DOWNLOADS_DIR / task_id
     archive_name = generate_archive_name(url)
-    task_archive_path = ARCHIVES_DIR / f"{archive_name}.tar.zst"
     status_file = STATUS_DIR / f"{task_id}.log"
 
     command_log = "" # Define command_log here to ensure it's always available
@@ -553,6 +615,8 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
         await run_command(command, command_log, status_file, task_id)
 
         if not enable_compression:
+            update_task_status(task_id, {"status": "uploading"})
+            await upload_uncompressed(task_id, service, upload_path, params, status_file)
             update_task_status(task_id, {"status": "completed"})
             with open(status_file, "a") as f:
                 f.write("\nJob completed successfully (compression disabled).\n")
@@ -560,47 +624,62 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
 
         # 2. Compress
         update_task_status(task_id, {"status": "compressing"})
-        downloaded_folders = [d for d in task_download_dir.iterdir() if d.is_dir()]
-        if downloaded_folders:
-            source_to_compress = downloaded_folders[0]
-        elif any(task_download_dir.iterdir()):
-            source_to_compress = task_download_dir
-        else:
-            raise FileNotFoundError("No files found to compress.")
         
-        compress_cmd = f"tar -cf - -C \"{source_to_compress}\" . | zstd -o \"{task_archive_path}\""
-        await run_command(compress_cmd, compress_cmd, status_file, task_id)
+        if split_compression:
+            archive_paths = await compress_in_chunks(task_id, task_download_dir, archive_name, split_size * 1024 * 1024, status_file)
+        else:
+            task_archive_path = ARCHIVES_DIR / f"{archive_name}.tar.zst"
+            downloaded_folders = [d for d in task_download_dir.iterdir() if d.is_dir()]
+            if downloaded_folders:
+                source_to_compress = downloaded_folders[0]
+            elif any(task_download_dir.iterdir()):
+                source_to_compress = task_download_dir
+            else:
+                raise FileNotFoundError("No files found to compress.")
+            compress_cmd = f"tar -cf - -C \"{source_to_compress}\" . | zstd -o \"{task_archive_path}\""
+            await run_command(compress_cmd, compress_cmd, status_file, task_id)
+            archive_paths = [task_archive_path]
 
         # 3. Upload
         update_task_status(task_id, {"status": "uploading"})
-        if service == "gofile":
-            gofile_token = params.get("gofile_token")
-            gofile_folder_id = params.get("gofile_folder_id")
+        for archive_path in archive_paths:
+            try:
+                if service == "gofile":
+                    gofile_token = params.get("gofile_token")
+                    gofile_folder_id = params.get("gofile_folder_id")
 
-            # If a token is provided but a folder ID is NOT, use the default folder ID.
-            if gofile_token and not gofile_folder_id:
-                gofile_folder_id = "ad957716-3899-498a-bebc-716f616f9b16"
+                    if gofile_token and not gofile_folder_id:
+                        gofile_folder_id = "ad957716-3899-498a-bebc-716f616f9b16"
 
-            download_link = await upload_to_gofile(
-                task_archive_path,
-                status_file,
-                api_token=gofile_token,
-                folder_id=gofile_folder_id
-            )
-            update_task_status(task_id, {"status": "completed", "gofile_link": download_link})
-        else:
-            rclone_config_path = create_rclone_config(task_id, service, params)
-            remote_full_path = f"remote:{upload_path}"
-            upload_cmd = (
-                f"rclone copyto --config \"{rclone_config_path}\" \"{task_archive_path}\" \"{remote_full_path}/{task_id}.zst\" "
-                f"-P --log-file=\"{status_file}\" --log-level=ERROR"
-            )
-            if params.get("upload_rate_limit"):
-                upload_cmd += f" --bwlimit {params['upload_rate_limit']}"
-            upload_cmd += " 2>/dev/null"
-            await run_command(upload_cmd, upload_cmd, status_file, task_id)
-            update_task_status(task_id, {"status": "completed"})
-        
+                    download_link = await upload_to_gofile(
+                        archive_path,
+                        status_file,
+                        api_token=gofile_token,
+                        folder_id=gofile_folder_id
+                    )
+                    update_task_status(task_id, {"status": "completed", "gofile_link": download_link})
+                else:
+                    rclone_config_path = create_rclone_config(task_id, service, params)
+                    remote_full_path = f"remote:{upload_path}"
+                    upload_cmd = (
+                        f"rclone copyto --config \"{rclone_config_path}\" \"{archive_path}\" \"{remote_full_path}/{archive_path.name}\" "
+                        f"-P --log-file=\"{status_file}\" --log-level=ERROR"
+                    )
+                    if params.get("upload_rate_limit"):
+                        upload_cmd += f" --bwlimit {params['upload_rate_limit']}"
+                    upload_cmd += " 2>/dev/null"
+                    await run_command(upload_cmd, upload_cmd, status_file, task_id)
+                    update_task_status(task_id, {"status": "completed"})
+            except Exception as e:
+                with open(status_file, "a") as f:
+                    f.write(f"\n--- UPLOAD FAILED ---\n{e}\n")
+                update_task_status(task_id, {"status": "failed", "error": str(e)})
+                # Fallback to uncompressed upload
+                with open(status_file, "a") as f:
+                    f.write("\n--- FALLING BACK TO UNCOMPRESSED UPLOAD ---\n")
+                await upload_uncompressed(task_id, service, upload_path, params, status_file)
+                update_task_status(task_id, {"status": "completed"})
+
         with open(status_file, "a") as f:
             f.write("\nJob completed successfully!\n")
 
@@ -734,6 +813,8 @@ async def create_download_job(
     proxy: str = Form(None),
     auto_proxy: bool = Form(False),
     enable_compression: bool = Form(True),
+    split_compression: bool = Form(False),
+    split_size: int = Form(1000),
 ):
     """
     Accepts a download job, validates input, and starts it in the background.
@@ -767,7 +848,9 @@ async def create_download_job(
         service=upload_service,
         upload_path=upload_path,
         params=params,
-        enable_compression=enable_compression
+        enable_compression=enable_compression,
+        split_compression=split_compression,
+        split_size=split_size
     ))
     
     return RedirectResponse("/tasks", status_code=303)

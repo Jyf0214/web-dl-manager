@@ -102,6 +102,16 @@
                                                     {{ lang.enable_compression_label }}
                                                 </label>
                                             </div>
+                                            <div class="form-check mb-3">
+                                                <input class="form-check-input" type="checkbox" value="true" id="split_compression" name="split_compression">
+                                                <label class="form-check-label" for="split_compression">
+                                                    {{ lang.split_compression_label }}
+                                                </label>
+                                            </div>
+                                            <div id="split-size-container" class="mb-3" style="display: none;">
+                                                <label for="split_size" class="form-label">{{ lang.split_size_label }}</label>
+                                                <input type="number" class="form-control" id="split_size" name="split_size" value="1000" min="1">
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -289,6 +299,17 @@
                 proxyInput.value = '';
             } else {
                 proxyInput.disabled = false;
+            }
+        });
+
+        const splitCompressionCheckbox = document.getElementById('split_compression');
+        const splitSizeContainer = document.getElementById('split-size-container');
+
+        splitCompressionCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                splitSizeContainer.style.display = 'block';
+            } else {
+                splitSizeContainer.style.display = 'none';
             }
         });
 
