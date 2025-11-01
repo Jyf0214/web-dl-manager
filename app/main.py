@@ -107,6 +107,7 @@ LANGUAGES = {
         "start_tunnel_button": "Start Tunnel",
         "stop_tunnel_button": "Stop Tunnel",
         "tunnel_status_title": "Tunnel Status",
+        "enable_compression_label": "Enable Compression",
     },
     "zh": {
         "app_title": "Gallery-DL & Kemono-DL 网页版",
@@ -180,6 +181,7 @@ LANGUAGES = {
         "start_tunnel_button": "启动隧道",
         "stop_tunnel_button": "停止隧道",
         "tunnel_status_title": "隧道状态",
+        "enable_compression_label": "启用压缩",
     }
 }
 
@@ -497,7 +499,7 @@ def update_task_status(task_id: str, updates: Dict[str, Any]):
     with open(status_path, "w") as f:
         json.dump(status_data, f, indent=4)
 
-async def process_download_job(task_id: str, url: str, downloader: str, service: str, upload_path: str, params: dict):
+async def process_download_job(task_id: str, url: str, downloader: str, service: str, upload_path: str, params: dict, enable_compression: bool = True):
     """The main background task for a download job."""
     task_download_dir = DOWNLOADS_DIR / task_id
     archive_name = generate_archive_name(url)
@@ -543,6 +545,12 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
         
         update_task_status(task_id, {"command": command_log})
         await run_command(command, command_log, status_file, task_id)
+
+        if not enable_compression:
+            update_task_status(task_id, {"status": "completed"})
+            with open(status_file, "a") as f:
+                f.write("\nJob completed successfully (compression disabled).\n")
+            return
 
         # 2. Compress
         update_task_status(task_id, {"status": "compressing"})
@@ -729,6 +737,7 @@ async def create_download_job(
     rate_limit: str = Form(None),
     proxy: str = Form(None),
     auto_proxy: bool = Form(False),
+    enable_compression: bool = Form(True),
 ):
     """
     Accepts a download job, validates input, and starts it in the background.
@@ -761,7 +770,8 @@ async def create_download_job(
         downloader=downloader,
         service=upload_service,
         upload_path=upload_path,
-        params=params
+        params=params,
+        enable_compression=enable_compression
     ))
     
     return RedirectResponse("/tasks", status_code=303)
@@ -828,7 +838,8 @@ async def retry_task(task_id: str):
         downloader=original_params.get("downloader"),
         service=original_params.get("upload_service"),
         upload_path=original_params.get("upload_path"),
-        params=original_params
+        params=original_params,
+        enable_compression=original_params.get("enable_compression", "true").lower() == "true"
     ))
 
     return RedirectResponse("/tasks", status_code=303)
