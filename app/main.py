@@ -653,20 +653,6 @@ async def get_blog_index(request: Request):
     if blog_index.exists():
         with open(blog_index, "r", encoding="utf-8") as f:
             content = f.read()
-        # Inject signin popup
-        content = content.replace("</body>", """
-        <script>
-            document.addEventListener("DOMContentLoaded", function() {
-                setTimeout(function() {
-                    if (!document.cookie.includes("user=")) {
-                        if (confirm("Sign in to access the downloader.")) {
-                            window.location.href = "/login";
-                        }
-                    }
-                }, 3000);
-            });
-        </script>
-        </body>""")
         return HTMLResponse(content=content)
     # Fallback to the Jinja2 template if the static file doesn't exist.
     return templates.TemplateResponse("index.html", {"request": request, "lang": get_lang(request)})
