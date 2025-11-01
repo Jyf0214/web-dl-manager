@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 设置默认值
-DEFAULT_GIT_URL="https://github.com/Jyf0214/blog-index.git"
+DEFAULT_GIT_URL="https://github.com/Jyf0214/upgraded-doodle.git"
 DEFAULT_GIT_BRANCH="gh-pages"
 
 # 检查环境变量，如果未设置则使用默认值
