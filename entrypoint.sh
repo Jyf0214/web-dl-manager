@@ -43,4 +43,4 @@ python -c "import sys; print(sys.path)"
 
 # 启动 FastAPI 应用
 echo "Starting Uvicorn server..."
-exec uvicorn main:app --host 0.0.0.0 --port 8000
+exec uvicorn main:app --host 0.0.0.0 --port 8000 --no-access-log
