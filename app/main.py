@@ -871,6 +871,11 @@ async def get_changelog():
         content = changelog_file.read_text()
     return Response(content=content, media_type="text/plain")
 
+@app.get("/api/active_tasks")
+async def get_active_tasks_count():
+    """Returns the number of currently active (not queued) tasks."""
+    return {"active_downloads": job_queue.qsize()}
+
 @app.get("/", response_class=HTMLResponse)
 async def get_blog_index(request: Request):
     # This route is specifically kept to inject the login popup script.

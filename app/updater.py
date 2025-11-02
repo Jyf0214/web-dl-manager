@@ -3,6 +3,7 @@ import sys
 import signal
 import subprocess
 import json
+import time
 from pathlib import Path
 from datetime import datetime
 import httpx
@@ -92,15 +93,39 @@ def update_changelog(old_sha: str, new_sha: str):
     log("CHANGELOG.md updated.")
 
 def restart_application():
-    """Restarts the application by sending a SIGHUP signal."""
-    log("Sending SIGHUP to PID 1 to restart the application...")
-    try:
-        os.kill(1, signal.SIGHUP)
-    except Exception as e:
-        log(f"Could not send SIGHUP to PID 1: {e}. The container might need a manual restart.")
-        # As a fallback, try to kill the current process. Docker's restart policy might take over.
-        log("Attempting to exit current process as a fallback...")
-        sys.exit(1)
+    """
+    Checks for active downloads and restarts the application only when idle.
+    Sends SIGHUP to PID 1 to allow the entrypoint script to handle the restart.
+    """
+    log("Preparing to restart application...")
+    
+    idle_check_url = "http://localhost:8000/api/active_tasks"
+    
+    while True:
+        try:
+            with httpx.Client() as client:
+                response = client.get(idle_check_url)
+                response.raise_for_status()
+                data = response.json()
+                active_downloads = data.get("active_downloads", 0)
+                
+                if active_downloads == 0:
+                    log("No active downloads. Proceeding with restart.")
+                    os.kill(1, signal.SIGHUP)
+                    break
+                else:
+                    log(f"There are {active_downloads} active downloads. Waiting 5 minutes before checking again.")
+                    time.sleep(300) # Wait for 5 minutes
+        except httpx.RequestError as e:
+            log(f"Could not connect to the application to check for active tasks: {e}")
+            log("Assuming it's safe to restart. Proceeding with caution.")
+            os.kill(1, signal.SIGHUP)
+            break
+        except Exception as e:
+            log(f"An unexpected error occurred during idle check: {e}")
+            log("Aborting restart due to an unexpected error.")
+            break
+
 
 def run_update():
     """Main function to run the update process."""
