@@ -1,46 +1,86 @@
 #!/bin/bash
+set -e
 
-# 设置默认值
-DEFAULT_GIT_URL="https://github.com/Jyf0214/upgraded-doodle.git"
-DEFAULT_GIT_BRANCH="gh-pages"
+# Start the cron daemon in the background
+echo "Starting cron daemon..."
+cron -f &
 
-# 检查环境变量，如果未设置则使用默认值
-TARGET_GIT_URL=${STATIC_SITE_GIT_URL:-$DEFAULT_GIT_URL}
-TARGET_GIT_BRANCH=${STATIC_SITE_GIT_BRANCH:-$DEFAULT_GIT_BRANCH}
+# --- App Repository Configuration ---
+# Use environment variables, with sensible defaults for this project
+APP_GIT_URL=${APP_GIT_URL:-"https://github.com/Jyf0214/gallery-dl-web.git"}
+APP_GIT_BRANCH=${APP_GIT_BRANCH:-"main"}
 
-# 定义静态文件存放目录
+# --- Static Site (Blog) Configuration ---
+STATIC_SITE_GIT_URL=${STATIC_SITE_GIT_URL:-"https://github.com/Jyf0214/upgraded-doodle.git"}
+STATIC_SITE_GIT_BRANCH=${STATIC_SITE_GIT_BRANCH:-"gh-pages"}
 STATIC_SITE_DIR="/app/static_site"
 
-# 如果设置了静态站点的 URL，则进行克隆
-if [ -n "$TARGET_GIT_URL" ]; then
-    echo "Cloning static site from $TARGET_GIT_URL (branch: $TARGET_GIT_BRANCH)..."
-    
-    # 创建目录
-    mkdir -p $STATIC_SITE_DIR
-    
-    # 克隆指定分支到目标目录
-    git clone --depth 1 --branch "$TARGET_GIT_BRANCH" "$TARGET_GIT_URL" "$STATIC_SITE_DIR"
-    
+# --- App Initialization ---
+# Check if the app directory is empty or doesn't have a .git folder
+if [ ! -d "/app/.git" ]; then
+    echo "No git repository found. Cloning application..."
+    # Clone the repository into a temporary directory
+    git clone --depth 1 --branch "$APP_GIT_BRANCH" "$APP_GIT_URL" /tmp/app_source
+    # Move the contents to the current directory (/app)
+    mv /tmp/app_source/* /app/
+    mv /tmp/app_source/.* /app/ || true # Move hidden files like .gitignore
+    rm -rf /tmp/app_source
+    echo "Application cloned successfully."
+else
+    echo "Existing git repository found. Skipping clone."
+fi
+
+# --- Dependency Installation ---
+echo "Installing/updating Python dependencies..."
+pip install --no-cache-dir -r /app/app/requirements.txt
+
+# --- Static Site Cloning ---
+if [ -n "$STATIC_SITE_GIT_URL" ]; then
+    echo "Cloning static site from $STATIC_SITE_GIT_URL (branch: $STATIC_SITE_GIT_BRANCH)..."
+    # Remove existing directory to ensure a fresh clone
+    rm -rf $STATIC_SITE_DIR
+    git clone --depth 1 --branch "$STATIC_SITE_GIT_BRANCH" "$STATIC_SITE_GIT_URL" "$STATIC_SITE_DIR"
     if [ $? -eq 0 ]; then
-        echo "Cloning successful."
+        echo "Static site cloning successful."
     else
-        echo "Cloning failed. Please check the URL and branch name."
-        # 即使克隆失败，也创建一个空目录，以防应用启动失败
+        echo "Static site cloning failed. Creating an empty directory."
         mkdir -p $STATIC_SITE_DIR
     fi
 else
     echo "STATIC_SITE_GIT_URL not set. Skipping clone."
-    # 确保目录存在
     mkdir -p $STATIC_SITE_DIR
 fi
 
-echo "--- INSTALLED PACKAGES ---"
-pip list
-echo "--- PYTHONPATH ---"
-echo $PYTHONPATH
-echo "--- sys.path ---"
-python -c "import sys; print(sys.path)"
+# --- Uvicorn Process Management ---
+PID_FILE="/tmp/uvicorn.pid"
 
-# 启动 FastAPI 应用
-echo "Starting Uvicorn server..."
-exec uvicorn main:app --host 0.0.0.0 --port 8000 --no-access-log
+# Function to start Uvicorn
+start_uvicorn() {
+    echo "Starting Uvicorn server..."
+    cd /app/app
+    uvicorn main:app --host 0.0.0.0 --port 8000 --no-access-log &
+    echo $! > $PID_FILE
+    wait $(cat $PID_FILE)
+}
+
+# Graceful shutdown and restart
+handle_signal() {
+    echo "Signal received, attempting graceful shutdown and restart..."
+    if [ -f "$PID_FILE" ]; then
+        kill -TERM "$(cat $PID_FILE)"
+        rm -f "$PID_FILE"
+    fi
+    # The loop will handle the restart
+    exit 0
+}
+
+# Trap signals
+trap 'handle_signal' SIGTERM SIGHUP
+
+# --- Main Loop ---
+# This loop ensures that if the app is stopped (e.g., by the updater), it will restart.
+while true; do
+    start_uvicorn
+    echo "Uvicorn process ended. Restarting in 5 seconds..."
+    sleep 5
+done
