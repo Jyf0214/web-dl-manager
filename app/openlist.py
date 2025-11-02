@@ -1,6 +1,7 @@
 import requests
 import os
 import urllib.parse
+import time
 from pathlib import Path
 
 class OpenlistError(Exception):
@@ -67,7 +68,7 @@ def create_directory(base_url: str, token: str, remote_dir: str, status_file: Pa
 
 def upload_file(base_url: str, token: str, local_file: Path, remote_dir: str, status_file: Path = None) -> str:
     """
-    Uploads a file using the /api/fs/put endpoint.
+    Uploads a file using the /api/fs/put endpoint with retries.
     """
     filename = os.path.basename(local_file)
     full_path = f"{remote_dir.rstrip('/')}/{filename}"
@@ -82,30 +83,38 @@ def upload_file(base_url: str, token: str, local_file: Path, remote_dir: str, st
         'As-Task': 'false'
     }
     
-    try:
-        with open(local_file, 'rb') as f:
-            resp = requests.put(url, data=f, headers=headers, timeout=300) # Increased timeout for upload
+    last_exception = None
+    for attempt in range(50):
+        try:
+            with open(local_file, 'rb') as f:
+                resp = requests.put(url, data=f, headers=headers, timeout=300)
 
-        resp.raise_for_status()
-        resp_json = resp.json()
+            resp.raise_for_status()
+            resp_json = resp.json()
 
-        if resp_json.get('code') == 200:
-            _log(status_file, f"Successfully uploaded '{filename}'.")
-            return full_path
-        else:
-            message = resp_json.get('message', 'Unknown error')
-            _log(status_file, f"Upload API returned an error for '{filename}': {message}")
-            raise OpenlistError(f"Upload API returned an error: {message}")
-            
-    except requests.RequestException as e:
-        _log(status_file, f"Upload request failed for '{filename}': {e}")
-        raise OpenlistError(f"Upload request failed: {e}")
-    except ValueError:
-        _log(status_file, f"Failed to decode JSON from upload response for '{filename}': {resp.text}")
-        raise OpenlistError(f"Upload response was not valid JSON: {resp.text}")
-    except IOError as e:
-        _log(status_file, f"Failed to read local file '{local_file}': {e}")
-        raise OpenlistError(f"Failed to read local file '{local_file}': {e}")
+            if resp_json.get('code') == 200:
+                _log(status_file, f"Successfully uploaded '{filename}' on attempt {attempt + 1}.")
+                return full_path
+            else:
+                message = resp_json.get('message', 'Unknown error')
+                _log(status_file, f"Upload attempt {attempt + 1}/50 failed for '{filename}': {message}")
+                last_exception = OpenlistError(f"Upload API returned an error: {message}")
+
+        except requests.RequestException as e:
+            _log(status_file, f"Upload attempt {attempt + 1}/50 failed for '{filename}': {e}")
+            last_exception = OpenlistError(f"Upload request failed: {e}")
+        except ValueError:
+            _log(status_file, f"Upload attempt {attempt + 1}/50 failed for '{filename}' (invalid JSON response): {resp.text}")
+            last_exception = OpenlistError(f"Upload response was not valid JSON: {resp.text}")
+        except IOError as e:
+            _log(status_file, f"Failed to read local file '{local_file}': {e}")
+            raise OpenlistError(f"Failed to read local file '{local_file}': {e}") # Do not retry on file read errors
+
+        # Wait before retrying
+        time.sleep(5)
+
+    _log(status_file, f"All 50 upload attempts failed for '{filename}'.")
+    raise last_exception if last_exception else OpenlistError("Unknown error after all upload retries.")
 
 def verify_upload(base_url: str, token: str, remote_path: str, status_file: Path = None) -> bool:
     """
