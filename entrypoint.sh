@@ -30,10 +30,6 @@ else
     echo "Existing git repository found. Skipping clone."
 fi
 
-# --- Dependency Installation ---
-echo "Installing/updating Python dependencies..."
-pip install --no-cache-dir -r /app/app/requirements.txt
-
 # --- Static Site Cloning ---
 if [ -n "$STATIC_SITE_GIT_URL" ]; then
     echo "Cloning static site from $STATIC_SITE_GIT_URL (branch: $STATIC_SITE_GIT_BRANCH)..."
@@ -57,8 +53,8 @@ PID_FILE="/tmp/uvicorn.pid"
 # Function to start Uvicorn
 start_uvicorn() {
     echo "Starting Uvicorn server..."
-    cd /app/app
-    uvicorn main:app --host 0.0.0.0 --port 8000 --no-access-log &
+    # Ensure we are in the /app/app directory to find main:app
+    (cd /app/app && uvicorn main:app --host 0.0.0.0 --port 8000 --no-access-log) &
     echo $! > $PID_FILE
     wait $(cat $PID_FILE)
 }
