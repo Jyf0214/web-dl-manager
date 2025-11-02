@@ -37,29 +37,34 @@ RUN mkdir -p /data/downloads /data/archives /data/status && chown -R 1000:1000 /
 COPY --from=builder /usr/local/lib/python3.11/site-packages/ /usr/local/lib/python3.11/site-packages/
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
 
-# 5. Copy application and cron files
-COPY --chown=1000:1000 ./app /app
+# 5. Copy ONLY the entrypoint script and requirements.txt for initial install
+# The actual app code will be cloned by entrypoint.sh
 COPY --chown=1000:1000 ./entrypoint.sh /entrypoint.sh
+COPY --chown=1000:1000 ./app/requirements.txt /app/requirements.txt
 RUN chmod +x /entrypoint.sh
 
-# 6. Set up cron job
-RUN echo "0 3 * * * python3 /app/updater.py >> /data/status/cron_update.log 2>&1" > /etc/cron.d/updater_cron
+# 6. Install Python dependencies (including uvicorn)
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# 7. Set up cron job
+# Note: The updater.py will be downloaded by entrypoint.sh
+RUN echo "0 3 * * * python3 /app/app/updater.py >> /data/status/cron_update.log 2>&1" > /etc/cron.d/updater_cron
 RUN chmod 0644 /etc/cron.d/updater_cron
 RUN crontab /etc/cron.d/updater_cron
 
-# 7. Set PYTHONPATH
+# 8. Set PYTHONPATH
 ENV PYTHONPATH /usr/local/lib/python3.11/site-packages
 
-# 8. Switch to the non-root user
+# 9. Switch to the non-root user
 USER 1000
 
-# 9. Expose port
+# 10. Expose port
 EXPOSE 8000
 
-# 10. Define volumes
+# 11. Define volumes
 VOLUME /data/downloads
 VOLUME /data/archives
 VOLUME /data/status
 
-# 11. Set entrypoint
+# 12. Set entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
