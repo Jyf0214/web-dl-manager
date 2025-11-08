@@ -252,7 +252,7 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
                 command += f" --limit-rate {params['rate_limit']}"
             command += f" {url}"
 
-            command_log = "gallery-dl --verbose -D <dir>"
+            command_log = f"gallery-dl --verbose -D {task_download_dir}"
             if proxy:
                 command_log += f" --proxy {proxy}"
         
