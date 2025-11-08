@@ -53,8 +53,7 @@ PID_FILE="/tmp/uvicorn.pid"
 # Function to start Uvicorn
 start_uvicorn() {
     echo "Starting Uvicorn server..."
-    # Ensure we are in the /app/app directory to find main:app
-    (cd /app/app && uvicorn main:app --host 0.0.0.0 --port 8000 --no-access-log) &
+    (cd /app && uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log) &
     echo $! > $PID_FILE
 }
 
