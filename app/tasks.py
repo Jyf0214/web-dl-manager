@@ -19,43 +19,6 @@ async def run_ai_simulation_logger(process, status_file: Path):
     """
     Writes fake AI-themed log messages to the status file while the process is running.
     """
-    fake_logs = [
-        "[INFO] Initializing AI model...",
-        "[INFO] Loading dataset and parameters...",
-        "[INFO] Found {count} data points for processing.",
-        "[PROCESS] Preprocessing data batch {i} of {count}...",
-        "[PROCESS] Running inference on batch {i}...",
-        "[INFO] Aggregating results...",
-        "[PROGRESS] {percent:.1f}% complete.",
-    ]
-    total_batches = random.randint(15, 40)
-
-    with open(status_file, "a", encoding="utf-8") as f:
-        f.write("Starting AI task simulation...\n")
-        f.write(fake_logs[0] + "\n")
-        f.flush()
-        await asyncio.sleep(random.uniform(1, 2))
-        
-        f.write(fake_logs[1] + "\n")
-        f.write(fake_logs[2].format(count=total_batches) + "\n")
-        f.flush()
-        await asyncio.sleep(random.uniform(1, 2))
-
-        for i in range(1, total_batches + 1):
-            if process.returncode is not None:
-                break  # Process finished early
-
-            await asyncio.sleep(random.uniform(0.5, 2.0))
-
-            f.write(fake_logs[3].format(i=i, count=total_batches) + "\n")
-            f.flush()
-            await asyncio.sleep(random.uniform(0.2, 1.0))
-            
-            f.write(fake_logs[4].format(i=i) + "\n")
-            percent = (i / total_batches) * 100
-            f.write(fake_logs[6].format(percent=percent) + "\n")
-            f.flush()
-
     await process.wait()
 
 
@@ -64,10 +27,6 @@ async def run_command(command: str, command_to_log: str, status_file: Path, task
     Runs a shell command asynchronously, logs fake AI progress, and stores its PGID.
     The actual command output is discarded to /dev/null.
     """
-    with open(status_file, "a") as f:
-        f.write(f"Executing background task: {command_to_log}\n")
-        f.write("NOTE: Log output is a simulation of an AI task for platform compatibility.\n\n")
-
     process = await asyncio.create_subprocess_shell(
         command,
         stdout=asyncio.subprocess.DEVNULL,
@@ -157,7 +116,7 @@ async def upload_uncompressed(task_id: str, service: str, upload_path: str, para
         
     upload_cmd = (
         f"rclone copy --config \"{rclone_config_path}\" \"{task_download_dir}\" \"{remote_full_path}\" "
-        f"-P --log-file=\"{status_file}\" --log-level=ERROR --retries 50"
+        f"-P --log-level=ERROR --retries 50"
     )
     if params.get("upload_rate_limit"):
         upload_cmd += f" --bwlimit {params['upload_rate_limit']}"
@@ -304,7 +263,7 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
                 remote_full_path = f"remote:{upload_path}"
                 upload_cmd = (
                     f"rclone copyto --config \"{rclone_config_path}\" \"{archive_path}\" \"{remote_full_path}/{archive_path.name}\" "
-                    f"-P --log-file=\"{status_file}\" --log-level=ERROR --retries 50"
+                    f"-P --log-level=ERROR --retries 50"
                 )
                 if params.get("upload_rate_limit"):
                     upload_cmd += f" --bwlimit {params['upload_rate_limit']}"
