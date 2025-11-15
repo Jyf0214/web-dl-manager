@@ -30,7 +30,7 @@ else:
     from config import BASE_DIR
     template_dir = BASE_DIR / "templates"
 
-app = FastAPI(title="Gallery-DL Web UI")
+app = FastAPI(title="Web-DL-Manager")
 app.add_middleware(SessionMiddleware, secret_key="some-random-string")
 templates = Jinja2Templates(directory=str(template_dir))
 

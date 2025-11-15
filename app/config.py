@@ -32,7 +32,7 @@ except PermissionError:
 # --- Translations ---
 LANGUAGES = {
     "en": {
-        "app_title": "Gallery-DL & Kemono-DL Web",
+        "app_title": "Web-DL-Manager",
         "intro_text": "This is a self-hostable web application that provides a user-friendly interface for two powerful command-line downloaders: `gallery-dl` and `kemono-dl`. It allows you to download image galleries and artist creations, compress them into `.tar.zst` archives, and automatically upload them to your configured storage backend.",
         "url_label": "URL",
         "url_placeholder": "e.g., https://www.deviantart.com/username/gallery/all or https://kemono.cr/patreon/user/47335841/post/141289985",
@@ -121,7 +121,7 @@ LANGUAGES = {
         "delete_task_confirm": "Are you sure you want to delete this task?",
     },
     "zh": {
-        "app_title": "Gallery-DL & Kemono-DL 网页版",
+        "app_title": "Web-DL-Manager",
         "intro_text": "这是一个可自托管的 Web 应用程序，它为两个强大的命令行下载器：`gallery-dl` 和 `kemono-dl` 提供了一个用户友好的界面。它允许您下载图片画廊和创作者作品，将其压缩为 `.tar.zst` 存档，并自动上传到您配置的存储后端。",
         "url_label": "网址",
         "url_placeholder": "例如：https://www.deviantart.com/username/gallery/all 或 https://kemono.cr/patreon/user/47335841/post/141289985",
