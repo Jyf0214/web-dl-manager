@@ -84,7 +84,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    spec_name = "web-dl-manager"
+    spec_name = "web-dl-manager",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -106,7 +106,7 @@ exe = EXE(
 """
     
     # Write the spec file
-    spec_file = "gallery-dl-web.spec"
+    spec_file = "web-dl-manager.spec"
     with open(spec_file, "w", encoding="utf-8") as f:
         f.write(spec_content)
     
