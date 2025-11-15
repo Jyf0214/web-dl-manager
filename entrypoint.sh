@@ -47,14 +47,40 @@ else
     mkdir -p $STATIC_SITE_DIR
 fi
 
-# --- Uvicorn Process Management ---
+# Function to build the binary
+build_binary() {
+    echo "Building binary application..."
+    cd /app
+    python build_new.py
+    if [ $? -eq 0 ]; then
+        echo "Binary built successfully!"
+        return 0
+    else
+        echo "Binary build failed!"
+        return 1
+    fi
+}
+
+# --- Process Management ---
 PID_FILE="/tmp/uvicorn.pid"
 
-# Function to start Uvicorn
-start_uvicorn() {
-    echo "Starting Uvicorn server..."
-    (cd /app && uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log > /dev/null 2>&1) &
-    echo $! > $PID_FILE
+# Function to start binary version (build if necessary)
+start_binary() {
+    # Build binary if not already built
+    if [ ! -f "/app/dist/gallery-dl-web/gallery-dl-web" ]; then
+        echo "Binary not found, building now..."
+        build_binary
+    fi
+    
+    if [ -f "/app/dist/gallery-dl-web/gallery-dl-web" ]; then
+        echo "Starting binary version of server..."
+        # Pass Cloudflare token to the binary if available
+        CLOUDFLARED_TOKEN="$CLOUDFLARED_TOKEN" /app/dist/gallery-dl-web/gallery-dl-web &
+        echo $! > $PID_FILE
+    else
+        echo "Binary build failed, exiting..."
+        exit 1
+    fi
 }
 
 # Graceful shutdown and restart
@@ -64,25 +90,26 @@ handle_signal() {
         kill -TERM "$(cat $PID_FILE)" &> /dev/null || true
         rm -f "$PID_FILE"
     fi
-    # The watchdog loop will handle the restart
+    exit 0
 }
 
 # Trap signals
 trap 'handle_signal' SIGTERM SIGHUP
 
 # --- Main Loop (Watchdog) ---
-start_uvicorn
+# Always build and start the binary version
+start_binary
 
 while true; do
     sleep 60
     if [ -f "$PID_FILE" ]; then
         # Check if the process with the given PID is running
         if ! kill -0 "$(cat $PID_FILE)" &> /dev/null; then
-            echo "Uvicorn process seems to have died. Restarting..."
-            start_uvicorn
+            echo "Process seems to have died. Restarting..."
+            start_binary
         fi
     else
         echo "PID file not found. Assuming process is dead. Restarting..."
-        start_uvicorn
+        start_binary
     fi
 done

@@ -5,9 +5,9 @@ import shutil
 import random
 from pathlib import Path
 
-from . import openlist
-from .config import DOWNLOADS_DIR, ARCHIVES_DIR, STATUS_DIR
-from .utils import (
+import openlist
+from config import DOWNLOADS_DIR, ARCHIVES_DIR, STATUS_DIR
+from utils import (
     get_working_proxy,
     upload_to_gofile,
     create_rclone_config,
