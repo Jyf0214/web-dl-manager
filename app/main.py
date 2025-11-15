@@ -402,5 +402,10 @@ if __name__ == "__main__":
 
     if not is_hf_space:
         logger.info(f"start HTTP server @ {host}:{port}")
+
+    # Setup uvicorn kwargs
+    uvicorn_kwargs = {"host": host, "port": port}
+    if is_hf_space:
+        uvicorn_kwargs["log_config"] = None
     
-    uvicorn.run(app, host=host, port=port, log_config=log_config)
+    uvicorn.run(app, **uvicorn_kwargs)
