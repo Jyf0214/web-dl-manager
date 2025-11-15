@@ -14,9 +14,20 @@ APP_PASSWORD = os.getenv("APP_PASSWORD", "")
 AVATAR_URL = os.getenv("AVATAR_URL", "https://github.com/Jyf0214.png")
 
 # Create directories if they don't exist
-os.makedirs(DOWNLOADS_DIR, exist_ok=True)
-os.makedirs(ARCHIVES_DIR, exist_ok=True)
-os.makedirs(STATUS_DIR, exist_ok=True)
+try:
+    os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+    os.makedirs(ARCHIVES_DIR, exist_ok=True)
+    os.makedirs(STATUS_DIR, exist_ok=True)
+except PermissionError:
+    print("Permission denied to create /data directories. Creating them locally inside the project.")
+    # Redefine paths to be relative to the project root (one level up from app/)
+    project_root = Path(__file__).resolve().parent.parent
+    DOWNLOADS_DIR = project_root / "data" / "downloads"
+    ARCHIVES_DIR = project_root / "data" / "archives"
+    STATUS_DIR = project_root / "data" / "status"
+    os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+    os.makedirs(ARCHIVES_DIR, exist_ok=True)
+    os.makedirs(STATUS_DIR, exist_ok=True)
 
 # --- Translations ---
 LANGUAGES = {
