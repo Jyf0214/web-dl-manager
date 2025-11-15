@@ -34,7 +34,7 @@ PID_FILE="/tmp/gallery-dl-web.pid"
 start_binary() {
     echo "Starting server from pre-built binary..."
     # The binary is located at /app/gallery-dl-web, copied during docker build
-    /app/gallery-dl-web &
+    /app/web-dl-manager &
     echo $! > "$PID_FILE"
 }
 
