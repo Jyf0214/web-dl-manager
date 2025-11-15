@@ -36,6 +36,44 @@ tunnel_process: Optional[asyncio.subprocess.Process] = None
 tunnel_log = ""
 tunnel_lock = asyncio.Lock()
 
+
+async def launch_tunnel(token: str):
+    global tunnel_process, tunnel_log
+    async with tunnel_lock:
+        if tunnel_process and tunnel_process.returncode is None:
+            tunnel_log += "Tunnel is already running.\n"
+            return
+
+        try:
+            tunnel_log += "Launching Cloudflare tunnel...\n"
+            command = ["cloudflared", "tunnel", "run", "--token", token]
+            
+            process = await asyncio.create_subprocess_exec(
+                *command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                preexec_fn=os.setsid
+            )
+            tunnel_process = process
+            tunnel_log += f"Tunnel process started with PID: {process.pid}\n"
+
+            async def log_output(stream, log_prefix):
+                global tunnel_log
+                while True:
+                    line = await stream.readline()
+                    if not line:
+                        break
+                    decoded_line = line.decode('utf-8', 'replace').strip()
+                    async with tunnel_lock:
+                        tunnel_log += f"{log_prefix}: {decoded_line}\n"
+
+            asyncio.create_task(log_output(process.stdout, "stdout"))
+            asyncio.create_task(log_output(process.stderr, "stderr"))
+
+        except Exception as e:
+            async with tunnel_lock:
+                tunnel_log += f"Failed to launch tunnel: {e}\n"
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup event
