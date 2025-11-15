@@ -14,7 +14,7 @@ if [ -n "$STATIC_SITE_GIT_URL" ]; then
     echo "Cloning static site from $STATIC_SITE_GIT_URL (branch: $STATIC_SITE_GIT_BRANCH)..."
     # Remove existing directory to ensure a fresh clone
     rm -rf $STATIC_SITE_DIR
-    git clone --depth 1 --branch "$STATIC_SITE_GIT_BRANCH" "$STATIC_SITE_GIT_URL" "$STATIC_SITE_DIR"
+    git clone --quiet --depth 1 --branch "$STATIC_SITE_GIT_BRANCH" "$STATIC_SITE_GIT_URL" "$STATIC_SITE_DIR"
     if [ $? -eq 0 ]; then
         echo "Static site cloning successful."
     else
