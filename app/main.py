@@ -135,6 +135,10 @@ async def get_changelog():
         content = changelog_file.read_text()
     return Response(content=content, media_type="text/plain")
 
+def get_lang(request: Request):
+    lang_code = request.cookies.get("lang", "en")
+    return LANGUAGES.get(lang_code, LANGUAGES["en"])
+
 @app.get("/", response_class=HTMLResponse)
 async def get_blog_index(request: Request):
     blog_index = Path("/app/static_site/index.html")
