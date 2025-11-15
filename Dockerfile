@@ -43,8 +43,9 @@ COPY --chown=1000:1000 ./entrypoint.sh /entrypoint.sh
 COPY --chown=1000:1000 ./app/requirements.txt /app/requirements.txt
 RUN chmod +x /entrypoint.sh
 
-# 6. Install Python dependencies (including uvicorn)
+# 6. Install Python dependencies (including uvicorn and pyinstaller for binary builds)
 RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --no-cache-dir pyinstaller
 
 # 7. Set up cron job
 # Note: The updater.py will be downloaded by entrypoint.sh

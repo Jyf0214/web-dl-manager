@@ -13,10 +13,10 @@ from starlette.background import BackgroundTasks
 from typing import Optional
 from pydantic import BaseModel
 
-from . import updater, status
-from .config import BASE_DIR, STATUS_DIR, LANGUAGES, PRIVATE_MODE, APP_USERNAME, APP_PASSWORD, AVATAR_URL
-from .utils import get_task_status_path, update_task_status
-from .tasks import process_download_job
+import updater, status
+from config import BASE_DIR, STATUS_DIR, LANGUAGES, PRIVATE_MODE, APP_USERNAME, APP_PASSWORD, AVATAR_URL
+from utils import get_task_status_path, update_task_status
+from tasks import process_download_job
 
 # --- FastAPI App Initialization ---
 app = FastAPI(title="Gallery-DL Web UI")
@@ -357,3 +357,10 @@ async def get_status_raw(task_id: str):
 static_site_dir = Path("/app/static_site")
 if static_site_dir.is_dir():
     app.mount("/", StaticFiles(directory=static_site_dir, html=True), name="static_site")
+
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    port = int(os.getenv("PORT", 8000))
+    host = os.getenv("HOST", "0.0.0.0")
+    uvicorn.run(app, host=host, port=port)

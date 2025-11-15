@@ -5,7 +5,7 @@ import platform
 import sys
 from datetime import datetime, timedelta
 
-from .config import STATUS_DIR
+from config import STATUS_DIR
 
 START_TIME = datetime.utcnow()
 

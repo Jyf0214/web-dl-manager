@@ -221,10 +221,7 @@
                 </div>
                 <button class="btn btn-outline-success btn-sm" onclick="startTunnel()">{{ lang.start_tunnel_button }}</button>
                 <button class="btn btn-outline-danger btn-sm" onclick="stopTunnel()">{{ lang.stop_tunnel_button }}</button>
-                <div class="mt-3">
-                    <h6 class="card-subtitle mb-2 text-muted">{{ lang.tunnel_status_title }}</h6>
-                    <pre id="tunnel-log" class="bg-light p-2 rounded" style="min-height: 100px; font-size: 0.8em;"></pre>
-                </div>
+
             </div>
         </div>
 
@@ -355,8 +352,7 @@
         }
         function checkTunnelStatus() {
             fetch('/tunnel/status').then(r => r.json()).then(data => {
-                const logEl = document.getElementById('tunnel-log');
-                logEl.textContent = (data.running ? 'Status: Running\n\n' : 'Status: Not Running\n\n') + data.log;
+                // Tunnel logs are disabled in UI
             });
         }
         
