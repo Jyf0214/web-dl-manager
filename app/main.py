@@ -363,28 +363,44 @@ if __name__ == "__main__":
     import os
     import logging
     import time
-    import random # Keep random for potential future use, though not used in this specific log
+    import subprocess
+
+    # --- Environment-aware Logging Setup ---
+    is_hf_space = "SPACE_ID" in os.environ
+
+    log_config = None
+    log_level = logging.CRITICAL + 1
+
+    if not is_hf_space:
+        log_level = logging.DEBUG
+        log_config = "default" # Use Uvicorn's default logging
 
     class MyFormatter(logging.Formatter):
         def format(self, record):
             t = time.strftime('%Y-%m-%d %H : %M : %S')
             return f"NFO [ {t} ] {record.getMessage()}"
 
+    # Configure root logger for basic output, and our custom logger
+    logging.basicConfig(level=log_level)
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-    if not logger.handlers: # Prevent duplicate handlers if script is reloaded
-        handler = logging.StreamHandler()
-        handler.setFormatter(MyFormatter())
-        logger.addHandler(handler)
+    logger.setLevel(log_level)
 
-    logger.info("reading config file : /app/config.py")
-    logger.info("config file not exists , creating default config file")
-    logger.info("load config from env with prefix : APP_")
-    logger.info("init logrus ...")
-    logger.info("ok")
+    if not is_hf_space:
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(MyFormatter())
+            logger.addHandler(handler)
+        
+        logger.info("reading config file : /app/config.py")
+        logger.info("config file not exists , creating default config file")
+        logger.info("load config from env with prefix : APP_")
+        logger.info("init logrus ...")
+        logger.info("ok")
 
     port = int(os.getenv("PORT", 8000))
     host = os.getenv("HOST", "0.0.0.0")
-    logger.info(f"start HTTP server @ {host}:{port}")
+
+    if not is_hf_space:
+        logger.info(f"start HTTP server @ {host}:{port}")
     
-    uvicorn.run(app, host=host, port=port, log_config=None)
+    uvicorn.run(app, host=host, port=port, log_config=log_config)
