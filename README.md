@@ -1,4 +1,4 @@
-# Gallery-DL & Kemono-DL Web
+# Web-DL-Manager
 
 This is a self-hostable web application that provides a user-friendly interface for two powerful command-line downloaders: `gallery-dl` and `kemono-dl`. It allows you to download image galleries and artist creations, compress them into `.tar.zst` archives, and automatically upload them to your configured storage backend.
 
@@ -58,14 +58,14 @@ To run the application, pull the image from `ghcr.io` and run it with Docker. Yo
 mkdir -p ./gallery-dl-data
 
 # Pull the image (replace with your GitHub username)
-docker pull ghcr.io/literal:Jyf0214/literal:gallery-dl-web:main
+docker pull ghcr.io/Jyf0214/web-dl-manager:main
 
 # Run the container
 docker run -d \
   -p 8000:8000 \
   -v ./gallery-dl-data:/data \
-  --name gallery-dl-web \
-  ghcr.io/literal:Jyf0214/literal:gallery-dl-web:main
+  --name web-dl-manager \
+  ghcr.io/Jyf0214/web-dl-manager:main
 ```
 
 The web interface will be accessible at `http://localhost:8000`.
@@ -84,8 +84,8 @@ docker run -d \
   -e AVATAR_URL=https://your-avatar.com/avatar.png \
   -e STATIC_SITE_GIT_URL=https://github.com/user/blog.git \
   -e STATIC_SITE_GIT_BRANCH=main \
-  --name gallery-dl-web \
-  ghcr.io/literal:Jyf0214/literal:gallery-dl-web:main
+  --name web-dl-manager \
+  ghcr.io/Jyf0214/web-dl-manager:main
 ```
 
 In private mode, you should access the application via a specific path like `/login`.
@@ -108,7 +108,7 @@ The binary will be created in the `dist/` directory. You can then run it directl
 
 ```bash
 # On Linux/macOS
-./dist/gallery-dl-web/gallery-dl-web
+./dist/web-dl-manager/web-dl-manager
 
 # Or with Python run script
 python run_binary.py --port 8000 --host 0.0.0.0
