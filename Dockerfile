@@ -4,6 +4,10 @@ FROM python:3.11-slim as builder
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends git binutils
 
+# Clone kemono-dl and install it
+RUN git clone https://github.com/AlphaSlayer1964/kemono-dl.git /app/kemono-dl
+WORKDIR /app/kemono-dl
+RUN pip install .
 WORKDIR /app
 
 # Copy the entire application source
