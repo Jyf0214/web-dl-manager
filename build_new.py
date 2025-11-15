@@ -84,7 +84,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    spec_name = "web-dl-manager",
+    name="web-dl-manager",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
