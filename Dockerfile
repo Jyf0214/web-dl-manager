@@ -16,10 +16,8 @@ RUN pip install --no-cache-dir pyinstaller
 # Run the build script to create the binary
 RUN python build_new.py
 
-# Clone the static site that needs to be served
-ARG STATIC_SITE_GIT_URL="https://github.com/Jyf0214/upgraded-doodle.git"
-ARG STATIC_SITE_GIT_BRANCH="gh-pages"
-RUN git clone --depth 1 --branch ${STATIC_SITE_GIT_BRANCH} ${STATIC_SITE_GIT_URL} /app/static_site
+# Debug: List the contents of the app directory to see where the binary is
+RUN ls -lR /app
 
 
 # Stage 2: Final production image
@@ -51,9 +49,6 @@ RUN mkdir -p /app/app /data/downloads /data/archives /data/status && chown -R 10
 
 # Copy the pre-built binary from the builder stage
 COPY --chown=1000:1000 --from=builder /app/dist/gallery-dl-web/gallery-dl-web /app/gallery-dl-web
-
-# Copy the pre-cloned static site from the builder stage
-COPY --chown=1000:1000 --from=builder /app/static_site /app/static_site
 
 # Copy the entrypoint and updater scripts
 COPY --chown=1000:1000 ./entrypoint.sh /entrypoint.sh
