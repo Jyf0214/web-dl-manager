@@ -12,6 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from starlette.background import BackgroundTasks
 from typing import Optional
 from pydantic import BaseModel
+from contextlib import asynccontextmanager
 
 import updater, status
 from config import BASE_DIR, STATUS_DIR, LANGUAGES, PRIVATE_MODE, APP_USERNAME, APP_PASSWORD, AVATAR_URL
@@ -30,77 +31,23 @@ else:
     from config import BASE_DIR
     template_dir = BASE_DIR / "templates"
 
-app = FastAPI(title="Web-DL-Manager")
-app.add_middleware(SessionMiddleware, secret_key="some-random-string")
-templates = Jinja2Templates(directory=str(template_dir))
-
 # --- Cloudflared Tunnel Management ---
 tunnel_process: Optional[asyncio.subprocess.Process] = None
 tunnel_log = ""
 tunnel_lock = asyncio.Lock()
 
-class TunnelRequest(BaseModel):
-    token: str
-
-def get_lang(request: Request):
-    lang_code = request.cookies.get("lang", "en")
-    if lang_code not in LANGUAGES:
-        lang_code = "en"
-    return LANGUAGES[lang_code]
-
-async def read_tunnel_stream(stream, log_prefix):
-    global tunnel_log
-    while True:
-        line = await stream.readline()
-        if not line:
-            break
-        decoded_line = line.decode()
-        if "uvicorn.access" not in decoded_line:
-            async with tunnel_lock:
-                tunnel_log += f"{log_prefix}: {decoded_line}"
-
-async def launch_tunnel(token: str):
-    global tunnel_process, tunnel_log
-    async with tunnel_lock:
-        if tunnel_process and tunnel_process.returncode is None:
-            return {"message": "Tunnel is already running."}
-
-        if not token:
-            tunnel_log += "Token is empty. Cannot start tunnel.\n"
-            return {"message": "Token is empty."}
-
-        tunnel_log = "Starting tunnel...\n"
-        command = f"cloudflared tunnel --no-autoupdate run --token {token}"
-
-        try:
-            tunnel_process = await asyncio.create_subprocess_shell(
-                command,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                preexec_fn=os.setsid
-            )
-            asyncio.create_task(read_tunnel_stream(tunnel_process.stdout, "STDOUT"))
-            asyncio.create_task(read_tunnel_stream(tunnel_process.stderr, "STDERR"))
-            tunnel_log += "Tunnel process started.\n"
-            return {"message": "Tunnel started successfully."}
-        except Exception as e:
-            tunnel_log += f"Failed to start tunnel: {e}\n"
-            return {"message": f"Failed to start tunnel: {e}"}
-
-# --- API Endpoints ---
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup event
     cloudflared_token = os.getenv("CLOUDFLARED_TOKEN")
     if cloudflared_token:
         await launch_tunnel(cloudflared_token)
+    yield
+    # Shutdown event (if any)
 
-@app.get("/server-status/json")
-async def get_server_status_json():
-    return JSONResponse(content=status.get_all_status())
-
-@app.post("/tunnel/start")
-async def start_tunnel(request: TunnelRequest):
-    return await launch_tunnel(request.token)
+app = FastAPI(title="Web-DL-Manager", lifespan=lifespan)
+app.add_middleware(SessionMiddleware, secret_key="some-random-string")
+templates = Jinja2Templates(directory=str(template_dir))
 
 
 @app.post("/tunnel/stop")
