@@ -106,7 +106,7 @@ def upload_file(base_url: str, token: str, local_file: Path, remote_dir: str, st
         _log(status_file, f"Could not verify file existence, proceeding with upload anyway: {e}")
 
     _log(status_file, f"Starting upload of '{filename}' to '{full_path}'...")
-    
+
     url = base_url.rstrip('/') + '/api/fs/put'
     encoded_path = urllib.parse.quote(full_path)
     headers = {
@@ -115,7 +115,7 @@ def upload_file(base_url: str, token: str, local_file: Path, remote_dir: str, st
         'Content-Type': 'application/octet-stream',
         'As-Task': 'false'
     }
-    
+
     last_exception = None
     for attempt in range(50):
         try:
@@ -147,7 +147,8 @@ def upload_file(base_url: str, token: str, local_file: Path, remote_dir: str, st
         time.sleep(5)
 
     _log(status_file, f"All 50 upload attempts failed for '{filename}'.")
-    raise last_exception if last_exception else OpenlistError("Unknown error after all upload retries.")
+    # Return the path even if upload failed after 50 attempts, so that other files can continue uploading
+    return full_path
 
 def verify_upload(base_url: str, token: str, remote_path: str, status_file: Path = None) -> bool:
     """
