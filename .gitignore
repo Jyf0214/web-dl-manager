@@ -24,3 +24,4 @@ replace_rules.txt
 # Temporary test files
 gofile_test.py
 gofile_auth_test.py
+web-dl-manager.spec
