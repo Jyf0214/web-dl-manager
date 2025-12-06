@@ -30,6 +30,14 @@ else
     mkdir -p $STATIC_SITE_DIR
 fi
 
+# --- Cloudflare Tunnel ---
+if [ -n "$TUNNEL_TOKEN" ]; then
+    echo "Starting Cloudflare tunnel..."
+    # 启动cloudflared，重定向所有输出到/dev/null以禁用日志
+    cloudflared tunnel --no-autoupdate run --token "$TUNNEL_TOKEN" > /dev/null 2>&1 &
+    echo "Cloudflare tunnel started (logs disabled)."
+fi
+
 # --- Start the main application ---
 # The python script now handles both the camouflage and main app servers.
 echo "Starting application..."
