@@ -49,6 +49,7 @@ def init_db_pool():
                     "database": db_name,
                     "port": db_port,
                     "autocommit": True,
+                    "auth_plugin": "mysql_native_password",  # Use native password plugin to avoid SSL requirement
                 }
 
                 if ssl_mode:
