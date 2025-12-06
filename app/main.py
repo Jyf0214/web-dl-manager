@@ -49,9 +49,20 @@ else:
 async def lifespan(app: FastAPI):
     init_db()
     mysql_handler = MySQLLogHandler()
-    mysql_handler.setLevel(logging.INFO)
-    logging.getLogger().addHandler(mysql_handler)
-    logging.getLogger().info("MySQL logging configured.")
+    
+    # 检查是否启用DEBUG模式
+    debug_enabled = os.getenv("DEBUG_MODE", "false").lower() == "true"
+    
+    if debug_enabled:
+        mysql_handler.setLevel(logging.DEBUG)
+        logging.getLogger().addHandler(mysql_handler)
+        logging.getLogger().setLevel(logging.DEBUG)
+        logging.getLogger().debug("MySQL logging configured with DEBUG level.")
+    else:
+        mysql_handler.setLevel(logging.INFO)
+        logging.getLogger().addHandler(mysql_handler)
+        logging.getLogger().info("MySQL logging configured with INFO level.")
+    
     cleanup_task = asyncio.create_task(periodic_log_cleanup())
     yield
     cleanup_task.cancel()
@@ -444,34 +455,74 @@ def run_camouflage_app():
 
 def run_main_app():
     """Runs the internal main application."""
-    # 禁用main_app的所有日志输出
-    log_config = {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "loggers": {
-            "": {"level": "CRITICAL", "handlers": []},
-            "uvicorn": {"level": "CRITICAL", "handlers": []},
-            "uvicorn.error": {"level": "CRITICAL", "handlers": []},
-            "uvicorn.access": {"level": "CRITICAL", "handlers": []},
-            "fastapi": {"level": "CRITICAL", "handlers": []},
-            "app": {"level": "CRITICAL", "handlers": []},
-            "app.database": {"level": "CRITICAL", "handlers": []},
-            "app.logging_handler": {"level": "CRITICAL", "handlers": []},
-            "app.main": {"level": "CRITICAL", "handlers": []},
-            "app.tasks": {"level": "CRITICAL", "handlers": []},
-            "app.utils": {"level": "CRITICAL", "handlers": []},
-        },
-        "handlers": {
-            "null": {
-                "class": "logging.NullHandler",
-                "level": "CRITICAL"
+    # 检查是否启用DEBUG模式
+    debug_enabled = os.getenv("DEBUG_MODE", "false").lower() == "true"
+    
+    if debug_enabled:
+        # 启用所有日志输出
+        log_config = {
+            "version": 1,
+            "disable_existing_loggers": False,
+            "formatters": {
+                "default": {
+                    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                },
+            },
+            "handlers": {
+                "console": {
+                    "class": "logging.StreamHandler",
+                    "formatter": "default",
+                    "level": "DEBUG",
+                    "stream": "ext://sys.stdout",
+                },
+            },
+            "loggers": {
+                "": {"level": "DEBUG", "handlers": ["console"]},
+                "uvicorn": {"level": "DEBUG", "handlers": ["console"]},
+                "uvicorn.error": {"level": "DEBUG", "handlers": ["console"]},
+                "uvicorn.access": {"level": "DEBUG", "handlers": ["console"]},
+                "fastapi": {"level": "DEBUG", "handlers": ["console"]},
+                "app": {"level": "DEBUG", "handlers": ["console"]},
+                "app.database": {"level": "DEBUG", "handlers": ["console"]},
+                "app.logging_handler": {"level": "DEBUG", "handlers": ["console"]},
+                "app.main": {"level": "DEBUG", "handlers": ["console"]},
+                "app.tasks": {"level": "DEBUG", "handlers": ["console"]},
+                "app.utils": {"level": "DEBUG", "handlers": ["console"]},
+            },
+            "root": {
+                "level": "DEBUG",
+                "handlers": ["console"]
             }
-        },
-        "root": {
-            "level": "CRITICAL",
-            "handlers": ["null"]
         }
-    }
+    else:
+        # 禁用main_app的所有日志输出
+        log_config = {
+            "version": 1,
+            "disable_existing_loggers": False,
+            "loggers": {
+                "": {"level": "CRITICAL", "handlers": []},
+                "uvicorn": {"level": "CRITICAL", "handlers": []},
+                "uvicorn.error": {"level": "CRITICAL", "handlers": []},
+                "uvicorn.access": {"level": "CRITICAL", "handlers": []},
+                "fastapi": {"level": "CRITICAL", "handlers": []},
+                "app": {"level": "CRITICAL", "handlers": []},
+                "app.database": {"level": "CRITICAL", "handlers": []},
+                "app.logging_handler": {"level": "CRITICAL", "handlers": []},
+                "app.main": {"level": "CRITICAL", "handlers": []},
+                "app.tasks": {"level": "CRITICAL", "handlers": []},
+                "app.utils": {"level": "CRITICAL", "handlers": []},
+            },
+            "handlers": {
+                "null": {
+                    "class": "logging.NullHandler",
+                    "level": "CRITICAL"
+                }
+            },
+            "root": {
+                "level": "CRITICAL",
+                "handlers": ["null"]
+            }
+        }
     uvicorn.run(main_app, host="127.0.0.1", port=6275, log_config=log_config)
 
 if __name__ == "__main__" or __name__ == "app.main":
