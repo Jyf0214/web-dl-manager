@@ -484,7 +484,7 @@ if __name__ == "__main__" or __name__ == "app.main":
     main_thread = threading.Thread(target=run_main_app, daemon=True)
 
     camouflage_thread.start()
-    logger.info("Camouflage service started on http://0.0.0.0:5492")
+    logger.info("Page service started on http://0.0.0.0:5492")
     
     main_thread.start()
     # 不输出后台应用启动日志
