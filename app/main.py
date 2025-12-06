@@ -440,6 +440,17 @@ async def get_status_raw(task_id: str, current_user: MySQLUser = Depends(get_cur
     with open(status_file, "r") as f: content = f.read()
     return Response(content=content, media_type="text/plain")
 
+@main_app.post("/cleanup-logs")
+async def cleanup_logs(current_user: MySQLUser = Depends(get_current_user)):
+    """清理数据库中的旧日志"""
+    from .logging_handler import cleanup_old_logs
+    
+    try:
+        cleanup_old_logs()
+        return JSONResponse(content={"status": "success", "message": "日志清理完成"})
+    except Exception as e:
+        return JSONResponse(content={"status": "error", "message": f"日志清理失败: {str(e)}"}, status_code=500)
+
 # --- Static Files Mounting ---
 static_site_dir = Path("/app/static_site")
 # Mount static files for both apps so they can serve common assets if needed

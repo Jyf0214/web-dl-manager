@@ -32,6 +32,7 @@
             <h1>{{ lang.all_tasks_title }}</h1>
             <div class="d-flex align-items-center">
                 <span id="current-version" class="me-2"></span>
+                <button id="cleanup-logs-button" class="btn btn-warning btn-sm me-2">清理日志</button>
                 <button id="update-button" class="btn btn-success btn-sm me-2">更新</button>
                 <button id="changelog-button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#changelogModal">更新日志</button>
                 <a href="/downloader" class="btn btn-primary ms-3">{{ lang.start_new_job_button }}</a>
@@ -173,6 +174,32 @@
                         alert('更新失败: ' + error.message);
                         this.disabled = false;
                         this.innerText = '更新';
+                    });
+                }
+            });
+
+            // Handle cleanup logs button click
+            document.getElementById('cleanup-logs-button').addEventListener('click', function() {
+                if (confirm('确定要清理旧日志吗？这将删除数据库中最旧的20%日志记录。')) {
+                    this.disabled = true;
+                    this.innerText = '清理中...';
+                    fetch('/cleanup-logs', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(data.message);
+                        this.disabled = false;
+                        this.innerText = '清理日志';
+                    })
+                    .catch(error => {
+                        console.error('Error during log cleanup:', error);
+                        alert('日志清理失败: ' + error.message);
+                        this.disabled = false;
+                        this.innerText = '清理日志';
                     });
                 }
             });
