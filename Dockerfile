@@ -1,3 +1,4 @@
+ARG DEBUG_MODE=false
 FROM python:3.11-slim
 
 # Install runtime system dependencies
@@ -39,6 +40,9 @@ RUN pip install --no-cache-dir gunicorn
 RUN echo "0 3 * * * /usr/local/bin/python3 /app/app/updater.py >> /data/status/cron_update.log 2>&1" > /etc/cron.d/updater_cron
 RUN chmod 0644 /etc/cron.d/updater_cron
 RUN crontab /etc/cron.d/updater_cron
+
+# Set DEBUG_MODE environment variable
+ENV DEBUG_MODE=${DEBUG_MODE}
 
 # Switch to the non-root user
 USER 1000

@@ -3,6 +3,7 @@ import asyncio
 import signal
 import shutil
 import random
+import logging
 from pathlib import Path
 
 
@@ -15,6 +16,12 @@ from .utils import (
     generate_archive_name,
     update_task_status,
 )
+
+# 获取logger
+logger = logging.getLogger(__name__)
+
+# 检查是否启用DEBUG模式
+debug_enabled = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
 
 
@@ -184,6 +191,16 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
     rclone_config_path = None
 
     try:
+        if debug_enabled:
+            logger.debug(f"[WORKFLOW] 开始处理任务 {task_id}")
+            logger.debug(f"[WORKFLOW] URL: {url}")
+            logger.debug(f"[WORKFLOW] 下载器: {downloader}")
+            logger.debug(f"[WORKFLOW] 上传服务: {service}")
+            logger.debug(f"[WORKFLOW] 上传路径: {upload_path}")
+            logger.debug(f"[WORKFLOW] 启用压缩: {enable_compression}")
+            logger.debug(f"[WORKFLOW] 分卷压缩: {split_compression}")
+            logger.debug(f"[WORKFLOW] 分卷大小: {split_size}MB")
+        
         update_task_status(task_id, {"status": "running", "url": url, "downloader": downloader})
         
         with open(status_file, "w") as f:
@@ -191,9 +208,16 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
 
         proxy = params.get("proxy")
         if params.get("auto_proxy"):
+            if debug_enabled:
+                logger.debug(f"[WORKFLOW] 启用自动代理选择")
             proxy = await get_working_proxy(status_file)
         
         downloader = params.get("downloader", "gallery-dl")
+
+        if debug_enabled:
+            logger.debug(f"[WORKFLOW] 配置下载器: {downloader}")
+            logger.debug(f"[WORKFLOW] 代理设置: {proxy if proxy else '无'}")
+            logger.debug(f"[WORKFLOW] 速度限制: {params.get('rate_limit', '无')}")
 
         if downloader == "megadl":
             command = f"megadl --path {task_download_dir}"
@@ -215,10 +239,15 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
             if proxy:
                 command_log += f" --proxy {proxy}"
         
+        if debug_enabled:
+            logger.debug(f"[WORKFLOW] 执行下载命令: {command_log}")
+        
         update_task_status(task_id, {"command": command_log})
         await run_command(command, command_log, status_file, task_id)
 
         if not enable_compression:
+            if debug_enabled:
+                logger.debug(f"[WORKFLOW] 跳过压缩，直接上传")
             update_task_status(task_id, {"status": "uploading"})
             await upload_uncompressed(task_id, service, upload_path, params, status_file)
             update_task_status(task_id, {"status": "completed"})
@@ -227,6 +256,12 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
             return
 
         update_task_status(task_id, {"status": "compressing"})
+        
+        if debug_enabled:
+            logger.debug(f"[WORKFLOW] 开始压缩文件")
+            logger.debug(f"[WORKFLOW] 分卷压缩: {split_compression}")
+            if split_compression:
+                logger.debug(f"[WORKFLOW] 分卷大小: {split_size}MB")
         
         if split_compression:
             archive_paths = await compress_in_chunks(task_id, task_download_dir, archive_name, split_size * 1024 * 1024, status_file)
@@ -237,19 +272,33 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
             await run_command(compress_cmd, compress_cmd, status_file, task_id)
             archive_paths = [task_archive_path]
 
+        if debug_enabled:
+            logger.debug(f"[WORKFLOW] 压缩完成，生成 {len(archive_paths)} 个文件")
+            for archive_path in archive_paths:
+                logger.debug(f"[WORKFLOW] 压缩文件: {archive_path}")
+
         update_task_status(task_id, {"status": "uploading"})
+        if debug_enabled:
+            logger.debug(f"[WORKFLOW] 开始上传到 {service}")
+        
         for archive_path in archive_paths:
             if service == "gofile":
+                if debug_enabled:
+                    logger.debug(f"[WORKFLOW] 使用 gofile.io 上传: {archive_path}")
                 gofile_token = params.get("gofile_token")
                 gofile_folder_id = params.get("gofile_folder_id")
                 if gofile_token and not gofile_folder_id:
                     gofile_folder_id = "ad957716-3899-498a-bebc-716f616f9b16"
                 download_link = await upload_to_gofile(archive_path, status_file, api_token=gofile_token, folder_id=gofile_folder_id)
                 update_task_status(task_id, {"status": "completed", "gofile_link": download_link})
+                if debug_enabled:
+                    logger.debug(f"[WORKFLOW] gofile.io 上传完成，链接: {download_link}")
 
             
 
             elif service == "openlist":
+                if debug_enabled:
+                    logger.debug(f"[WORKFLOW] 使用 Openlist 上传: {archive_path}")
                 openlist_url = params.get("openlist_url")
                 openlist_user = params.get("openlist_user")
                 openlist_pass = params.get("openlist_pass")
@@ -261,7 +310,11 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
                 for p in archive_paths:
                     openlist.upload_file(openlist_url, token, p, upload_path, status_file)
                 update_task_status(task_id, {"status": "completed"})
+                if debug_enabled:
+                    logger.debug(f"[WORKFLOW] Openlist 上传完成")
             else:
+                if debug_enabled:
+                    logger.debug(f"[WORKFLOW] 使用 rclone 上传到 {service}: {archive_path}")
                 rclone_config_path = create_rclone_config(task_id, service, params)
                 remote_full_path = f"remote:{upload_path}"
                 upload_cmd = (
@@ -272,6 +325,8 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
                     upload_cmd += f" --bwlimit {params['upload_rate_limit']}"
                 await run_command(upload_cmd, upload_cmd, status_file, task_id)
                 update_task_status(task_id, {"status": "completed"})
+                if debug_enabled:
+                    logger.debug(f"[WORKFLOW] rclone 上传完成")
 
         with open(status_file, "a") as f:
             f.write("\nJob completed successfully!\n")
@@ -284,23 +339,35 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
     finally:
         # --- MEMORY LEAK FIX ---
         # Cleanup all temporary files and directories for this specific task.
+        if debug_enabled:
+            logger.debug(f"[WORKFLOW] 开始清理任务资源")
+        
         with open(status_file, "a") as f:
             f.write("\n--- Cleaning up task resources... ---\n")
         
         # 1. Remove downloaded files
         if os.path.exists(task_download_dir):
+            if debug_enabled:
+                logger.debug(f"[WORKFLOW] 删除下载目录: {task_download_dir}")
             shutil.rmtree(task_download_dir)
             with open(status_file, "a") as f: f.write(f"Removed directory: {task_download_dir}\n")
 
         # 2. Remove created archives
         for archive_path in archive_paths:
             if os.path.exists(archive_path):
+                if debug_enabled:
+                    logger.debug(f"[WORKFLOW] 删除压缩文件: {archive_path}")
                 os.remove(archive_path)
                 with open(status_file, "a") as f: f.write(f"Removed archive: {archive_path}\n")
 
         # 3. Remove temporary rclone config
         if rclone_config_path and os.path.exists(rclone_config_path):
+            if debug_enabled:
+                logger.debug(f"[WORKFLOW] 删除 rclone 配置: {rclone_config_path}")
             os.remove(rclone_config_path)
             with open(status_file, "a") as f: f.write(f"Removed rclone config: {rclone_config_path}\n")
         
         with open(status_file, "a") as f: f.write("Cleanup complete.\n")
+        
+        if debug_enabled:
+            logger.debug(f"[WORKFLOW] 任务 {task_id} 清理完成")
