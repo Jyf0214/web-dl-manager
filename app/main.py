@@ -7,6 +7,9 @@ import threading
 import uvicorn
 import logging
 import time
+import os
+import hashlib
+import secrets
 from pathlib import Path
 from fastapi import FastAPI, Request, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
@@ -17,7 +20,6 @@ from starlette.background import BackgroundTasks
 from typing import Optional
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
-from passlib.context import CryptContext
 from .database import init_db, MySQLUser, mysql_config
 from .logging_handler import MySQLLogHandler, cleanup_old_logs
 
@@ -27,19 +29,28 @@ from .utils import get_task_status_path, update_task_status
 from .tasks import process_download_job
 
 # --- Password Hashing ---
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def verify_password(plain_password, hashed_password):
-    # bcrypt has a 72-byte limit, truncate if necessary
-    if len(plain_password.encode('utf-8')) > 72:
-        plain_password = plain_password[:70]  # Leave some margin
-    return pwd_context.verify(plain_password, hashed_password)
+    # Parse the stored hash: format is "salt:hash"
+    if not hashed_password or ':' not in hashed_password:
+        return False
+    
+    salt, stored_hash = hashed_password.split(':', 1)
+    
+    # Compute hash of the provided password with the same salt
+    computed_hash = hashlib.sha256((salt + plain_password).encode('utf-8')).hexdigest()
+    
+    # Use constant-time comparison to prevent timing attacks
+    return secrets.compare_digest(computed_hash, stored_hash)
 
 def get_password_hash(password):
-    # bcrypt has a 72-byte limit, truncate if necessary
-    if len(password.encode('utf-8')) > 72:
-        password = password[:70]  # Leave some margin
-    return pwd_context.hash(password)
+    # Generate a random salt
+    salt = secrets.token_hex(16)  # 16 bytes = 32 hex characters
+    
+    # Compute hash: salt + password
+    password_hash = hashlib.sha256((salt + password).encode('utf-8')).hexdigest()
+    
+    # Return format: salt:hash
+    return f"{salt}:{password_hash}"
 
 # --- FastAPI App Initialization ---
 import sys
@@ -68,6 +79,19 @@ async def lifespan(app: FastAPI):
         mysql_handler.setLevel(logging.INFO)
         logging.getLogger().addHandler(mysql_handler)
         logging.getLogger().info("MySQL logging configured with INFO level.")
+    
+    # 检查环境变量中是否设置了管理员账户
+    admin_username = APP_USERNAME
+    admin_password = APP_PASSWORD
+    
+    # 如果设置了环境变量且当前没有用户，则自动创建管理员账户
+    if admin_username and admin_password and MySQLUser.count_users() == 0:
+        logging.info(f"Creating admin user from environment variables: {admin_username}")
+        hashed_password = get_password_hash(admin_password)
+        if MySQLUser.create_user(username=admin_username, hashed_password=hashed_password, is_admin=True):
+            logging.info(f"Admin user {admin_username} created successfully from environment variables")
+        else:
+            logging.error(f"Failed to create admin user {admin_username} from environment variables")
     
     cleanup_task = asyncio.create_task(periodic_log_cleanup())
     yield

@@ -12,4 +12,4 @@ python-jose
 gofilepy-api
 psutil
 mysql-connector-python
-passlib[bcrypt]
+passlib[argon2]
