@@ -593,34 +593,66 @@ async def cleanup_logs(current_user: MySQLUser = Depends(get_current_user)):
     except Exception as e:
         return JSONResponse(content={"status": "error", "message": f"日志清理失败: {str(e)}"}, status_code=500)
 
-@main_app.get("/tunnel/status")
-async def get_tunnel_status(current_user: MySQLUser = Depends(get_current_user)):
-    """获取tunnel状态"""
-    return JSONResponse(content={"status": "stopped", "url": None, "message": "Tunnel not configured"})
-
-@main_app.post("/tunnel/start")
-async def start_tunnel(request: Request, current_user: MySQLUser = Depends(get_current_user)):
-    """启动tunnel"""
-    data = await request.json()
-    token = data.get("token")
-    if not token:
-        return JSONResponse(content={"status": "error", "message": "Token is required"}, status_code=400)
+@main_app.get("/server-status/json")
+async def get_server_status(current_user: MySQLUser = Depends(get_current_user)):
+    """获取服务器状态信息"""
+    import psutil
+    import platform
     
-    # Save token to database
-    mysql_config.set_config("tunnel_token", token)
-    os.environ["TUNNEL_TOKEN"] = token
+    # 系统信息
+    system_info = {
+        "uptime": "N/A",  # 可以添加实际运行时间计算
+        "platform": platform.system(),
+        "platform_release": platform.release(),
+        "platform_version": platform.version(),
+        "architecture": platform.machine(),
+        "hostname": platform.node(),
+        "processor": platform.processor(),
+    }
     
-    return JSONResponse(content={"status": "success", "message": "Tunnel configuration saved"})
-
-@main_app.post("/tunnel/stop")
-async def stop_tunnel(current_user: MySQLUser = Depends(get_current_user)):
-    """停止tunnel"""
-    # Remove token from database
-    mysql_config.set_config("tunnel_token", "")
-    if "TUNNEL_TOKEN" in os.environ:
-        del os.environ["TUNNEL_TOKEN"]
+    # CPU信息
+    cpu_info = {
+        "usage": psutil.cpu_percent(interval=1),
+        "count": psutil.cpu_count(),
+        "count_logical": psutil.cpu_count(logical=True),
+        "frequency": psutil.cpu_freq()._asdict() if psutil.cpu_freq() else None,
+    }
     
-    return JSONResponse(content={"status": "success", "message": "Tunnel stopped"})
+    # 内存信息
+    memory = psutil.virtual_memory()
+    memory_info = {
+        "total": memory.total,
+        "available": memory.available,
+        "used": memory.used,
+        "free": memory.free,
+        "percent": memory.percent,
+    }
+    
+    # 磁盘信息
+    disk = psutil.disk_usage('/')
+    disk_info = {
+        "total": disk.total,
+        "used": disk.used,
+        "free": disk.free,
+        "percent": (disk.used / disk.total) * 100,
+    }
+    
+    # 网络信息
+    network = psutil.net_io_counters()
+    network_info = {
+        "bytes_sent": network.bytes_sent,
+        "bytes_recv": network.bytes_recv,
+        "packets_sent": network.packets_sent,
+        "packets_recv": network.packets_recv,
+    }
+    
+    return JSONResponse(content={
+        "system": system_info,
+        "cpu": cpu_info,
+        "memory": memory_info,
+        "disk": disk_info,
+        "network": network_info,
+    })
 
 # --- Static Files Mounting ---
 static_site_dir = Path("/app/static_site")
