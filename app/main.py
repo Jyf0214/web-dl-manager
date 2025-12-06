@@ -593,6 +593,35 @@ async def cleanup_logs(current_user: MySQLUser = Depends(get_current_user)):
     except Exception as e:
         return JSONResponse(content={"status": "error", "message": f"日志清理失败: {str(e)}"}, status_code=500)
 
+@main_app.get("/tunnel/status")
+async def get_tunnel_status(current_user: MySQLUser = Depends(get_current_user)):
+    """获取tunnel状态"""
+    return JSONResponse(content={"status": "stopped", "url": None, "message": "Tunnel not configured"})
+
+@main_app.post("/tunnel/start")
+async def start_tunnel(request: Request, current_user: MySQLUser = Depends(get_current_user)):
+    """启动tunnel"""
+    data = await request.json()
+    token = data.get("token")
+    if not token:
+        return JSONResponse(content={"status": "error", "message": "Token is required"}, status_code=400)
+    
+    # Save token to database
+    mysql_config.set_config("tunnel_token", token)
+    os.environ["TUNNEL_TOKEN"] = token
+    
+    return JSONResponse(content={"status": "success", "message": "Tunnel configuration saved"})
+
+@main_app.post("/tunnel/stop")
+async def stop_tunnel(current_user: MySQLUser = Depends(get_current_user)):
+    """停止tunnel"""
+    # Remove token from database
+    mysql_config.set_config("tunnel_token", "")
+    if "TUNNEL_TOKEN" in os.environ:
+        del os.environ["TUNNEL_TOKEN"]
+    
+    return JSONResponse(content={"status": "success", "message": "Tunnel stopped"})
+
 # --- Static Files Mounting ---
 static_site_dir = Path("/app/static_site")
 # Mount static files for both apps so they can serve common assets if needed
