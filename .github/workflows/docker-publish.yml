@@ -56,40 +56,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download and install cloudflared
+      - name: Run application for preview
         run: |
-          curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-          sudo dpkg -i cloudflared.deb
-
-      - name: Run cloudflared tunnel and extract URL
-        id: tunnel
-        run: |
-          cloudflared tunnel --url http://localhost:8000 > cloudflared.log 2>&1 &
-          echo "Waiting for Cloudflare Tunnel URL..."
-          for i in {1..15}; do
-            if url=$(grep -o 'https://.*trycloudflare.com' cloudflared.log); then
-              echo "::set-output name=url::$url"
-              echo "Tunnel URL: $url"
-              break
-            fi
-            sleep 2
-          done
-
-      - name: Run application in foreground for 5 minutes
-        run: |
-          set +e
-          timeout 300s docker run --name web-dl-manager -p 8000:8000 ghcr.io/jyf0214/web-dl-manager:${{ needs.build_and_push.outputs.sha_tag }}
-          exit_code=$?
-          set -e
-          if [ $exit_code -eq 124 ]; then
-            echo "Application preview finished after 5 minutes."
-            exit 0
-          else
-            echo "Application exited with unexpected code: $exit_code"
-            exit $exit_code
-          fi
-
-      - name: Stop tunnel
-        if: always()
-        run: |
-          killall cloudflared
+          docker run -d --name web-dl-manager \
+            -p 5492:5492 \
+            -p 127.0.0.1:6275:6275 \
+            -e DATABASE_URL='sqlite:///:memory:' \
+            -e TUNNEL_TOKEN=${{ secrets.TUNNEL_TOKEN }} \
+            ghcr.io/jyf0214/web-dl-manager:${{ needs.build_and_push.outputs.sha_tag }}
+          
+          echo "Application is running in the background for preview."
+          echo "It will be stopped automatically after the workflow finishes."
