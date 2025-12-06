@@ -7,7 +7,7 @@ import datetime
 from contextlib import contextmanager
 from urllib.parse import urlparse, parse_qs
 
-from app.config import DATABASE_URL
+from .config import DATABASE_URL
 
 # Configure basic logging for this module
 logger = logging.getLogger(__name__)
@@ -38,17 +38,40 @@ def init_db_pool():
             # Parse query string for extra options like ssl_mode
             query_params = parse_qs(url.query)
             ssl_mode = query_params.get('ssl-mode', [None])[0]
+            ssl_ca = query_params.get('ssl-ca', [None])[0]
+
+            pool_cnx_args = {
+                "host": db_host,
+                "user": db_user,
+                "password": db_password,
+                "database": db_name,
+                "port": db_port,
+                "autocommit": True,
+            }
+
+            if ssl_mode:
+                logger.info(f"SSL mode specified: {ssl_mode}")
+                if ssl_mode in ['VERIFY_CA', 'VERIFY_IDENTITY']:
+                    if not ssl_ca:
+                        raise ValueError("ssl-ca parameter is required for ssl-mode=VERIFY_CA or VERIFY_IDENTITY")
+                    pool_cnx_args['ssl_ca'] = ssl_ca
+                    pool_cnx_args['ssl_verify_cert'] = True
+                    logger.info(f"SSL verification enabled using CA file: {ssl_ca}")
+                elif ssl_mode == 'REQUIRED':
+                    pool_cnx_args['ssl_verify_cert'] = False
+                    logger.info("SSL enabled but certificate verification is disabled (ssl-mode=REQUIRED).")
+                elif ssl_mode == 'DISABLED':
+                    pool_cnx_args['ssl_disabled'] = True
+                    logger.info("SSL is explicitly disabled (ssl-mode=DISABLED).")
+            else:
+                # Default behavior if ssl-mode is not specified: no SSL.
+                pool_cnx_args['ssl_disabled'] = True
+                logger.info("SSL mode not specified, connection will not be encrypted.")
 
             db_pool = pooling.MySQLConnectionPool(
                 pool_name="webdl_pool",
                 pool_size=5,
-                host=db_host,
-                user=db_user,
-                password=db_password,
-                database=db_name,
-                port=db_port,
-                autocommit=True,
-                ssl_verify_cert=(ssl_mode == 'REQUIRED') # Basic handling for ssl-mode
+                **pool_cnx_args
             )
             logger.info("Successfully initialized MySQL connection pool.")
         except mysql.connector.Error as err:
@@ -160,7 +183,7 @@ class MySQLConfigManager:
 mysql_config = MySQLConfigManager()
 
 class MySQLUser:
-    def __init__(self, id: int, username: str, hashed_password: str, is_admin: bool):
+    def __init__(self, id: int, username: str, hashed_password: str, is_admin: bool, **kwargs):
         self.id = id
         self.username = username
         self.hashed_password = hashed_password
@@ -228,3 +251,20 @@ class MySQLUser:
         except Exception as e:
             logger.error(f"Error counting users: {e}")
             return 0
+
+    @staticmethod
+    def update_password(username: str, new_hashed_password: str):
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE users SET hashed_password = %s WHERE username = %s",
+                    (new_hashed_password, username)
+                )
+                conn.commit()
+                cursor.close()
+                logger.info(f"Password updated for user '{username}'.")
+                return True
+        except Exception as e:
+            logger.error(f"Error updating password for user '{username}': {e}")
+            return False

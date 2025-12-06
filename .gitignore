@@ -18,7 +18,7 @@ build.py
 gallery-dl-web.spec
 requirements-build.txt
 run_binary.py
-
+run_and_test.sh
 replace_rules.txt
 
 # Temporary test files

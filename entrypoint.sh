@@ -2,8 +2,12 @@
 set -e
 
 # Start the cron daemon in the background for scheduled tasks
-echo "Starting cron daemon..."
-cron -f &
+if command -v cron &> /dev/null; then
+    echo "Starting cron daemon..."
+    cron -f &
+else
+    echo "Warning: 'cron' command not found. Scheduled updates will be skipped."
+fi
 
 # --- Static Site Cloning ---
 STATIC_SITE_GIT_URL=${STATIC_SITE_GIT_URL:-"https://github.com/Jyf0214/upgraded-doodle.git"}
@@ -26,57 +30,7 @@ else
     mkdir -p $STATIC_SITE_DIR
 fi
 
-
-# --- Camouflage Site Server ---
-CAMOUFLAGE_PORT=5492
-if [ -d "$STATIC_SITE_DIR" ] && [ "$(ls -A $STATIC_SITE_DIR)" ]; then
-    echo "Starting camouflage static server on port $CAMOUFLAGE_PORT..."
-    python3 -m http.server $CAMOUFLAGE_PORT --directory "$STATIC_SITE_DIR" &
-else
-    echo "Static site directory is empty or not found. Camouflage server not started."
-fi
-
-
-# --- Process Management ---
-PID_FILE="/tmp/web-dl-manager.pid"
-
-# Function to start the Python application
-start_python_app() {
-    echo "Starting server with gunicorn on 127.0.0.1:6275..."
-    gunicorn -w 4 -b 127.0.0.1:6275 app.main:app &
-    echo $! > "$PID_FILE"
-}
-
-# Function for graceful shutdown
-handle_signal() {
-    echo "Signal received, attempting graceful shutdown..."
-    if [ -f "$PID_FILE" ]; then
-        kill -TERM "$(cat "$PID_FILE")" &> /dev/null || true
-        rm -f "$PID_FILE"
-    fi
-    # Also kill the camouflage server
-    pkill -f "python3 -m http.server $CAMOUFLAGE_PORT" || true
-    exit 0
-}
-
-# Trap signals for graceful shutdown
-trap 'handle_signal' SIGTERM SIGHUP
-
-# --- Main Loop (Watchdog) ---
-# This loop ensures the application restarts if it crashes
-
-start_python_app
-
-while true; do
-    sleep 60
-    if [ -f "$PID_FILE" ]; then
-        # Check if the process is still running
-        if ! kill -0 "$(cat "$PID_FILE")" &> /dev/null; then
-            echo "Process seems to have died. Restarting..."
-            start_python_app
-        fi
-    else
-        echo "PID file not found. Assuming process is dead. Restarting..."
-        start_python_app
-    fi
-done
+# --- Start the main application ---
+# The python script now handles both the camouflage and main app servers.
+echo "Starting application..."
+exec python3 -m app.main

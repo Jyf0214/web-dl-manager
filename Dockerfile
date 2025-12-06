@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zstd \
     git \
     cron \
+    megatools \
     && curl https://rclone.org/install.sh | bash \
     && wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb \
     && dpkg -i cloudflared-linux-amd64.deb \

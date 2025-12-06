@@ -1,6 +1,6 @@
 import logging
 import datetime
-from app.database import get_db_connection
+from .database import get_db_connection
 import sys
 
 class MySQLLogHandler(logging.Handler):

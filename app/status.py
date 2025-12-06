@@ -5,7 +5,7 @@ import platform
 import sys
 from datetime import datetime, timedelta
 
-from config import STATUS_DIR
+from .config import STATUS_DIR
 
 START_TIME = datetime.utcnow()
 
@@ -78,6 +78,28 @@ def get_dependency_versions():
         pass
         
     return versions
+
+import json
+from app.config import STATUS_DIR
+
+def get_all_tasks():
+    """Scans the status directory and returns a list of all tasks, sorted by modification time."""
+    tasks = []
+    status_files = list(STATUS_DIR.glob("*.json"))
+    
+    # Sort files by modification time (newest first)
+    status_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+
+    for status_file in status_files:
+        try:
+            with open(status_file, "r") as f:
+                task_data = json.load(f)
+                tasks.append(task_data)
+        except (IOError, json.JSONDecodeError):
+            # In case of read error or malformed JSON, skip the file
+            continue
+            
+    return tasks
 
 def get_all_status():
     """Aggregates all status information into a single dictionary."""
