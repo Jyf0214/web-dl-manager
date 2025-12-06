@@ -108,15 +108,59 @@ main_app = FastAPI(title="Web-DL-Manager - Main", lifespan=lifespan)
 # Use the same secret key and session cookie settings for both apps to share sessions
 shared_secret_key = os.getenv("SESSION_SECRET_KEY", "web-dl-manager-shared-secret-key-2024")
 session_cookie_name = "session"
-session_cookie_settings = {
-    "session_cookie": session_cookie_name,
-    "same_site": "lax",
-    "https_only": False,  # Allow HTTP for local development
-    "max_age": 86400,  # 24 hours
-}
 
-camouflage_app.add_middleware(SessionMiddleware, secret_key=shared_secret_key, **session_cookie_settings)
-main_app.add_middleware(SessionMiddleware, secret_key=shared_secret_key, **session_cookie_settings)
+def get_session_settings(request: Request = None):
+    """动态获取session设置，支持跨域cookie"""
+    settings = {
+        "session_cookie": session_cookie_name,
+        "same_site": "lax",
+        "https_only": False,  # Allow HTTP for local development
+        "max_age": 86400,  # 24 hours
+    }
+    
+    # 如果有请求对象，尝试从请求中获取域信息
+    if request:
+        host = request.headers.get("host", "")
+        # 检查是否是内网穿透或其他域，设置合适的cookie域
+        if "." in host and not host.startswith("127.0.0.1") and not host.startswith("localhost"):
+            # 对于非本地域名，设置cookie域为根域
+            domain_parts = host.split(":")[0].split(".")
+            if len(domain_parts) > 2:
+                # 对于子域名，设置为二级域名
+                settings["domain"] = "." + ".".join(domain_parts[-2:])
+            else:
+                # 对于普通域名，设置为当前域名
+                settings["domain"] = host.split(":")[0]
+    
+    return settings
+
+# 自定义SessionMiddleware类，支持动态cookie设置
+class DynamicDomainSessionMiddleware(SessionMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await super().dispatch(request, call_next)
+        
+        # 如果有session，动态设置cookie域
+        if hasattr(request, 'session') and request.session.get("user"):
+            session_settings = get_session_settings(request)
+            if "domain" in session_settings:
+                # 重新设置cookie以包含正确的域
+                session_data = request.session
+                response.set_cookie(
+                    key=session_settings["session_cookie"],
+                    value=session_data.get("session_id", ""),
+                    max_age=session_settings["max_age"],
+                    domain=session_settings["domain"],
+                    path="/",
+                    samesite=session_settings["same_site"],
+                    secure=session_settings["https_only"],
+                    httponly=True
+                )
+        
+        return response
+
+session_settings = get_session_settings()
+camouflage_app.add_middleware(DynamicDomainSessionMiddleware, secret_key=shared_secret_key, **session_settings)
+main_app.add_middleware(DynamicDomainSessionMiddleware, secret_key=shared_secret_key, **session_settings)
 
 templates = Jinja2Templates(directory=str(template_dir))
 
@@ -157,9 +201,24 @@ async def login(request: Request, username: str = Form(...), password: str = For
         return RedirectResponse(url="/login", status_code=303)
     
     request.session["user"] = username
-    # Instead of redirecting, show a success message. User must go to the main app manually.
-    response = Response(content="Login successful. Please access the main application on port 6275.", media_type="text/plain")
-    # Ensure session is saved
+    
+    # Store the domain and tunnel token in database for future use
+    host = request.headers.get("host", "localhost")
+    domain_parts = host.split(":")
+    domain = domain_parts[0]
+    
+    # Save domain to database
+    mysql_config.set_config("login_domain", domain)
+    
+    # Check if tunnel token is in environment variables
+    tunnel_token = os.getenv("TUNNEL_TOKEN")
+    if tunnel_token:
+        mysql_config.set_config("tunnel_token", tunnel_token)
+    
+    # Instead of redirecting, show a success message with dynamic URL
+    main_app_url = f"http://{domain}:6275"
+    response_content = f"Login successful. Please access the main application at: {main_app_url}"
+    response = Response(content=response_content, media_type="text/plain")
     return response
 
 @camouflage_app.get("/", response_class=HTMLResponse)
@@ -536,10 +595,33 @@ def run_main_app():
         }
     uvicorn.run(main_app, host="127.0.0.1", port=6275, log_config=log_config)
 
-if __name__ == "__main__" or __name__ == "app.main":
+def load_config_from_db():
+    """从数据库加载配置"""
+    try:
+        # 检查是否有保存的tunnel token
+        saved_tunnel_token = mysql_config.get_config("tunnel_token")
+        if saved_tunnel_token and not os.getenv("TUNNEL_TOKEN"):
+            os.environ["TUNNEL_TOKEN"] = saved_tunnel_token
+            logger.info(f"从数据库加载内网穿透token: {saved_tunnel_token[:10]}...")
+        
+        # 检查是否有保存的domain
+        saved_domain = mysql_config.get_config("login_domain")
+        if saved_domain:
+            logger.info(f"从数据库加载登录域名: {saved_domain}")
+            
+    except Exception as e:
+        logger.error(f"从数据库加载配置失败: {e}")
+
+if __name__ == "__main__":
+    # 设置基本日志
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
-
+    
+    init_db()
+    
+    # 从数据库加载配置
+    load_config_from_db()
+    
     logger.info("Starting services...")
 
     camouflage_thread = threading.Thread(target=run_camouflage_app, daemon=True)
