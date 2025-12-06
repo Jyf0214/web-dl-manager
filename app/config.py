@@ -136,6 +136,9 @@ LANGUAGES = {
         "mega_password_label": "MEGA Password",
         "mega_2fa_label": "MEGA 2FA Code (Optional)",
         "mega_2fa_placeholder": "Enter 2FA code if enabled",
+        "login_error": "Invalid username or password",
+        "user_not_found": "User not found",
+        "password_incorrect": "Password is incorrect",
     },
     "zh": {
         "app_title": "Web-DL-Manager",
@@ -240,5 +243,8 @@ LANGUAGES = {
         "mega_password_label": "MEGA 密码",
         "mega_2fa_label": "MEGA 两步验证码 (可选)",
         "mega_2fa_placeholder": "如果启用了两步验证，请输入验证码",
+        "login_error": "用户名或密码错误",
+        "user_not_found": "用户不存在",
+        "password_incorrect": "密码错误",
     }
 }

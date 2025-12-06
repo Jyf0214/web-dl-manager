@@ -222,13 +222,27 @@ async def post_setup_form(request: Request, username: str = Form(...), password:
 @camouflage_app.get("/login", response_class=HTMLResponse)
 async def get_login_form(request: Request):
     lang = get_lang(request)
-    return templates.TemplateResponse("login.html", {"request": request, "lang": lang})
+    return templates.TemplateResponse("login.html", {"request": request, "lang": lang, "error": None})
 
 @camouflage_app.post("/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
+    lang = get_lang(request)
+    
     user = MySQLUser.get_user_by_username(username)
-    if not user or not verify_password(password, user.hashed_password):
-        return RedirectResponse(url="/login", status_code=303)
+    
+    if not user:
+        return templates.TemplateResponse("login.html", {
+            "request": request, 
+            "lang": lang, 
+            "error": lang.get("user_not_found", "User not found")
+        })
+    
+    if not verify_password(password, user.hashed_password):
+        return templates.TemplateResponse("login.html", {
+            "request": request, 
+            "lang": lang, 
+            "error": lang.get("password_incorrect", "Password is incorrect")
+        })
     
     request.session["user"] = username
     
@@ -298,7 +312,7 @@ async def get_downloader(request: Request, current_user: MySQLUser = Depends(get
 @main_app.get("/login", response_class=HTMLResponse)
 async def get_login_form_main(request: Request):
     lang = get_lang(request)
-    return templates.TemplateResponse("login.html", {"request": request, "lang": lang})
+    return templates.TemplateResponse("login.html", {"request": request, "lang": lang, "error": None})
 
 @main_app.post("/login")
 async def login_main(request: Request, username: str = Form(...), password: str = Form(...)):
@@ -306,19 +320,29 @@ async def login_main(request: Request, username: str = Form(...), password: str 
     logger = logging.getLogger(__name__)
     logger.info(f"登录尝试: username={username}")
     
+    lang = get_lang(request)
+    
     user = MySQLUser.get_user_by_username(username)
     logger.info(f"用户查询结果: {user}")
     
     if not user:
         logger.warning(f"用户不存在: {username}")
-        return RedirectResponse(url="/login", status_code=303)
+        return templates.TemplateResponse("login.html", {
+            "request": request, 
+            "lang": lang, 
+            "error": lang.get("user_not_found", "User not found")
+        })
     
     password_ok = verify_password(password, user.hashed_password)
     logger.info(f"密码验证结果: {password_ok}")
     
     if not password_ok:
         logger.warning(f"密码错误: {username}")
-        return RedirectResponse(url="/login", status_code=303)
+        return templates.TemplateResponse("login.html", {
+            "request": request, 
+            "lang": lang, 
+            "error": lang.get("password_incorrect", "Password is incorrect")
+        })
     
     request.session["user"] = username
     logger.info(f"Session设置: user={username}")
