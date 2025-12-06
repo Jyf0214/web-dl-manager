@@ -67,7 +67,9 @@ async def upload_uncompressed(task_id: str, service: str, upload_path: str, para
             f.write("\nUncompressed upload is not supported for gofile.io.\n")
         return
     
-        if service == "openlist":
+    task_download_dir = DOWNLOADS_DIR / task_id
+    
+    if service == "openlist":
             try:
                 openlist_url = params.get("openlist_url")
                 openlist_user = params.get("openlist_user")
@@ -86,8 +88,6 @@ async def upload_uncompressed(task_id: str, service: str, upload_path: str, para
                 else:
                     remote_task_dir = f"{upload_path}/{task_id}"
                 openlist.create_directory(openlist_url, token, remote_task_dir, status_file)
-                
-                task_download_dir = DOWNLOADS_DIR / task_id
                 
                 async def upload_dir_contents(local_dir: Path, remote_dir: str):
                     for item in local_dir.iterdir():
@@ -111,7 +111,6 @@ async def upload_uncompressed(task_id: str, service: str, upload_path: str, para
                 update_task_status(task_id, {"status": "failed", "error": error_message})
             return
     
-        task_download_dir = DOWNLOADS_DIR / task_id
     rclone_config_path = create_rclone_config(task_id, service, params)
     
     if "terabox" in upload_path:
