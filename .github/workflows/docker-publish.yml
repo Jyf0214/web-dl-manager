@@ -35,7 +35,7 @@ jobs:
             type=sha,prefix=,format=short,key=version
             type=ref,event=branch
 
-      - name: Build and push Docker image
+      - name: Build and push Docker image (source version)
         uses: docker/build-push-action@v4
         with:
           context: .

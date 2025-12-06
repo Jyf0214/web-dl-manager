@@ -31,6 +31,12 @@ else
 fi
 
 # --- Start the main application ---
-# The python script now handles both the camouflage and main app servers.
+# 检查是使用二进制文件还是 Python 源码
 echo "Starting application..."
-exec python3 -m app.main
+if [ -f "/app/web-dl-manager" ] && [ -x "/app/web-dl-manager" ]; then
+    echo "Using binary executable..."
+    exec /app/web-dl-manager
+else
+    echo "Using Python source code..."
+    exec python3 -m app.main
+fi
