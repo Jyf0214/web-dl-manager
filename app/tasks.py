@@ -6,15 +6,16 @@ import random
 from pathlib import Path
 
 
-from app import openlist
-from app.config import DOWNLOADS_DIR, ARCHIVES_DIR, STATUS_DIR
-from app.utils import (
+from . import openlist
+from .config import DOWNLOADS_DIR, ARCHIVES_DIR, STATUS_DIR
+from .utils import (
     get_working_proxy,
     upload_to_gofile,
     create_rclone_config,
     generate_archive_name,
     update_task_status,
 )
+from .mega_upload import upload_to_mega
 
 
 
@@ -54,10 +55,10 @@ async def run_command(command: str, command_to_log: str, status_file: Path, task
 
 async def upload_uncompressed(task_id: str, service: str, upload_path: str, params: dict, status_file: Path):
     """Uploads the uncompressed files to the remote storage."""
-        if service == "gofile":
-            with open(status_file, "a") as f:
-                f.write("\nUncompressed upload is not supported for gofile.io.\n")
-            return
+    if service == "gofile":
+        with open(status_file, "a") as f:
+            f.write("\nUncompressed upload is not supported for gofile.io.\n")
+        return
     
         if service == "openlist":
             try:
@@ -194,8 +195,11 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
         
         downloader = params.get("downloader", "gallery-dl")
 
-        if downloader == "kemono-dl":
-            command = f"kemono-dl {url} --path {task_download_dir}"
+        if downloader == "megadl":
+            command = f"megadl --path {task_download_dir}"
+            if params.get("rate_limit"):
+                command += f" --limit-speed {params['rate_limit']}"
+            command += f" {url}"
             command_log = command
         else:
             command = f"gallery-dl --verbose -D {task_download_dir}"
@@ -203,9 +207,9 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
                 command += f" -o extractor.deviantart.client-id={params['deviantart_client_id']} -o extractor.deviantart.client-secret={params['deviantart_client_secret']}"
             if proxy:
                 command += f" --proxy {proxy}"
-            if params.get("rate_limit"):
-                command += f" --limit-rate {params['rate_limit']}"
-            command += f" {url}"
+                if params.get("rate_limit"):
+                    command += f" --limit-rate {params['rate_limit']}"
+                command += f" {url}"
 
             command_log = f"gallery-dl --verbose -D {task_download_dir}"
             if proxy:
@@ -242,6 +246,16 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
                     gofile_folder_id = "ad957716-3899-498a-bebc-716f616f9b16"
                 download_link = await upload_to_gofile(archive_path, status_file, api_token=gofile_token, folder_id=gofile_folder_id)
                 update_task_status(task_id, {"status": "completed", "gofile_link": download_link})
+
+            elif service == "mega":
+                mega_email = params.get("mega_email")
+                mega_password = params.get("mega_password")
+                mega_2fa = params.get("mega_2fa")
+                if not mega_email or not mega_password:
+                    raise ValueError("MEGA email and password are required.")
+                with open(status_file, "a") as f: f.write(f"\n--- Starting MEGA Upload ---\n")
+                download_link = await upload_to_mega(archive_path, mega_email, mega_password, mega_2fa, status_file)
+                update_task_status(task_id, {"status": "completed", "mega_link": download_link})
 
             elif service == "openlist":
                 openlist_url = params.get("openlist_url")
