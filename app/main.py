@@ -20,7 +20,7 @@ from starlette.background import BackgroundTasks
 from typing import Optional
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
-from .database import init_db, MySQLUser, mysql_config
+from .database import init_db, User, db_config
 from .logging_handler import MySQLLogHandler, cleanup_old_logs
 
 from . import updater, status
@@ -87,10 +87,10 @@ async def lifespan(app: FastAPI):
     admin_password = APP_PASSWORD
     
     # 如果设置了环境变量且当前没有用户，则自动创建管理员账户
-    if admin_username and admin_password and MySQLUser.count_users() == 0:
+    if admin_username and admin_password and User.count_users() == 0:
         logging.info(f"Creating admin user from environment variables: {admin_username}")
         hashed_password = get_password_hash(admin_password)
-        if MySQLUser.create_user(username=admin_username, hashed_password=hashed_password, is_admin=True):
+        if User.create_user(username=admin_username, hashed_password=hashed_password, is_admin=True):
             logging.info(f"Admin user {admin_username} created successfully from environment variables")
         else:
             logging.error(f"Failed to create admin user {admin_username} from environment variables")
@@ -106,7 +106,7 @@ async def periodic_log_cleanup():
 
 # --- Dependencies ---
 async def check_setup_needed_camouflage(request: Request):
-    user_count = MySQLUser.count_users()
+    user_count = User.count_users()
     if user_count == 0 and request.url.path not in ["/setup", "/static", "/"]:
         # For camouflage app, we redirect to its own setup page
         base_url = request.base_url
@@ -114,7 +114,7 @@ async def check_setup_needed_camouflage(request: Request):
         raise HTTPException(status_code=307, detail="Setup required", headers={"Location": redirect_url})
 
 async def check_setup_needed_main(request: Request):
-    user_count = MySQLUser.count_users()
+    user_count = User.count_users()
     if user_count == 0:
         # The main app should be inaccessible and show a service unavailable page
         # as setup must be done via the camouflage app.
@@ -124,7 +124,7 @@ async def check_setup_needed_main(request: Request):
 async def get_current_user(request: Request):
     username = request.session.get("user")
     if username:
-        user = MySQLUser.get_user_by_username(username)
+        user = User.get_user_by_username(username)
         if user:
             return user
     # Main app is internal, so auth is always required.
@@ -200,13 +200,13 @@ templates = Jinja2Templates(directory=str(template_dir))
 
 @camouflage_app.get("/setup", response_class=HTMLResponse)
 async def get_setup_form(request: Request):
-    if MySQLUser.count_users() > 0:
+    if User.count_users() > 0:
         return RedirectResponse(url="/login", status_code=302)
     return templates.TemplateResponse("setup.html", {"request": request, "error": None})
 
 @camouflage_app.post("/setup", response_class=HTMLResponse)
 async def post_setup_form(request: Request, username: str = Form(...), password: str = Form(...), confirm_password: str = Form(...)):
-    if MySQLUser.count_users() > 0:
+    if User.count_users() > 0:
         return RedirectResponse(url="/login", status_code=302)
     if password != confirm_password:
         return templates.TemplateResponse("setup.html", {"request": request, "error": "Passwords do not match."})
@@ -214,7 +214,7 @@ async def post_setup_form(request: Request, username: str = Form(...), password:
         return templates.TemplateResponse("setup.html", {"request": request, "error": "Username and password cannot be empty."})
     
     hashed_password = get_password_hash(password)
-    if MySQLUser.create_user(username=username, hashed_password=hashed_password, is_admin=True):
+    if User.create_user(username=username, hashed_password=hashed_password, is_admin=True):
         request.session["user"] = username
         # Redirect to the main app's downloader page
         return Response(content="Setup complete. Please access the main application on port 6275.", media_type="text/plain")
@@ -240,12 +240,12 @@ async def login(request: Request, username: str = Form(...), password: str = For
         domain = domain_parts[0]
         
         # Save domain to database
-        mysql_config.set_config("login_domain", domain)
+        db_config.set_config("login_domain", domain)
         
         # Check if tunnel token is in environment variables
         tunnel_token = os.getenv("TUNNEL_TOKEN")
         if tunnel_token:
-            mysql_config.set_config("tunnel_token", tunnel_token)
+            db_config.set_config("tunnel_token", tunnel_token)
         
         # Instead of redirecting, show a success message with dynamic URL
         main_app_url = f"http://{domain}:6275"
@@ -253,7 +253,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
         response = Response(content=response_content, media_type="text/plain")
         return response
     
-    user = MySQLUser.get_user_by_username(username)
+    user = User.get_user_by_username(username)
     
     if not user:
         return templates.TemplateResponse("login.html", {
@@ -277,12 +277,12 @@ async def login(request: Request, username: str = Form(...), password: str = For
     domain = domain_parts[0]
     
     # Save domain to database
-    mysql_config.set_config("login_domain", domain)
+    db_config.set_config("login_domain", domain)
     
     # Check if tunnel token is in environment variables
     tunnel_token = os.getenv("TUNNEL_TOKEN")
     if tunnel_token:
-        mysql_config.set_config("tunnel_token", tunnel_token)
+        db_config.set_config("tunnel_token", tunnel_token)
     
     # Instead of redirecting, show a success message with dynamic URL
     main_app_url = f"http://{domain}:6275"
@@ -303,14 +303,14 @@ async def get_blog_index(request: Request):
 
 # All other routes are moved here and depend on `get_current_user`
 @main_app.post("/update")
-async def update_app(background_tasks: BackgroundTasks, user: MySQLUser = Depends(get_current_user)):
+async def update_app(background_tasks: BackgroundTasks, user: User = Depends(get_current_user)):
     result = updater.run_update()
     if result.get("status") == "success":
         background_tasks.add_task(updater.restart_application)
     return JSONResponse(content=result)
 
 @main_app.get("/version")
-async def get_version(user: MySQLUser = Depends(get_current_user)):
+async def get_version(user: User = Depends(get_current_user)):
     version_file = BASE_DIR.parent / ".version_info"
     version = "N/A"
     if version_file.exists():
@@ -318,7 +318,7 @@ async def get_version(user: MySQLUser = Depends(get_current_user)):
     return {"version": version}
 
 @main_app.get("/changelog")
-async def get_changelog(user: MySQLUser = Depends(get_current_user)):
+async def get_changelog(user: User = Depends(get_current_user)):
     changelog_file = BASE_DIR.parent / "CHANGELOG.md"
     content = "Changelog not found."
     if changelog_file.exists():
@@ -330,7 +330,7 @@ def get_lang(request: Request):
     return LANGUAGES.get(lang_code, LANGUAGES["en"])
 
 @main_app.get("/downloader", response_class=HTMLResponse)
-async def get_downloader(request: Request, current_user: MySQLUser = Depends(get_current_user)):
+async def get_downloader(request: Request, current_user: User = Depends(get_current_user)):
     lang = get_lang(request)
     return templates.TemplateResponse("downloader.html", {"request": request, "lang": lang, "user": current_user.username, "avatar_url": AVATAR_URL})
 
@@ -353,7 +353,7 @@ async def login_main(request: Request, username: str = Form(...), password: str 
         request.session["user"] = username
         return RedirectResponse(url="/downloader", status_code=303)
     
-    user = MySQLUser.get_user_by_username(username)
+    user = User.get_user_by_username(username)
     logger.info(f"用户查询结果: {user}")
     
     if not user:
@@ -387,12 +387,12 @@ async def logout(request: Request):
     return Response(content="You have been logged out. Please log in again via the public-facing service to continue.", media_type="text/plain")
 
 @main_app.get("/set_language/{lang_code}")
-async def set_language(lang_code: str, response: Response, user: MySQLUser = Depends(get_current_user)):
+async def set_language(lang_code: str, response: Response, user: User = Depends(get_current_user)):
     response.set_cookie(key="lang", value=lang_code, httponly=True, expires=31536000)
     return RedirectResponse(url="/downloader", status_code=302)
 
 @main_app.get("/change_password")
-async def change_password_page(request: Request, user: MySQLUser = Depends(get_current_user)):
+async def change_password_page(request: Request, user: User = Depends(get_current_user)):
     lang = request.cookies.get("lang", "en")
     return templates.TemplateResponse("change_password.html", {
         "request": request,
@@ -406,7 +406,7 @@ async def change_password(
     current_password: str = Form(...),
     new_password: str = Form(...),
     confirm_password: str = Form(...),
-    user: MySQLUser = Depends(get_current_user)
+    user: User = Depends(get_current_user)
 ):
     lang = request.cookies.get("lang", "en")
     lang_dict = LANGUAGES.get(lang, LANGUAGES["en"])
@@ -440,7 +440,7 @@ async def change_password(
     
     # Hash new password and update in database
     new_hashed_password = get_password_hash(new_password)
-    if MySQLUser.update_password(user.username, new_hashed_password):
+    if User.update_password(user.username, new_hashed_password):
         return templates.TemplateResponse("change_password.html", {
             "request": request,
             "user": user.username,
@@ -465,7 +465,7 @@ async def create_download_job(
     enable_compression: Optional[str] = Form(None),
     split_compression: bool = Form(False),
     split_size: int = Form(1000),
-    current_user: MySQLUser = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     task_id = str(uuid.uuid4())
     params = await request.form()
@@ -481,14 +481,14 @@ async def create_download_job(
     return RedirectResponse("/tasks", status_code=303)
 
 @main_app.get("/tasks", response_class=HTMLResponse)
-async def get_tasks(request: Request, current_user: MySQLUser = Depends(get_current_user)):
+async def get_tasks(request: Request, current_user: User = Depends(get_current_user)):
     lang = get_lang(request)
     # The original function was incomplete, fleshing out to render template
     tasks_list = status.get_all_tasks()
     return templates.TemplateResponse("tasks.html", {"request": request, "tasks": tasks_list, "lang": lang, "user": current_user.username})
 
 @main_app.post("/retry/{task_id}")
-async def retry_task(task_id: str, current_user: MySQLUser = Depends(get_current_user)):
+async def retry_task(task_id: str, current_user: User = Depends(get_current_user)):
     status_path = get_task_status_path(task_id)
     if not status_path.exists(): raise HTTPException(status_code=404, detail="Task to retry not found.")
     with open(status_path, "r") as f: task_data = json.load(f)
@@ -505,7 +505,7 @@ async def retry_task(task_id: str, current_user: MySQLUser = Depends(get_current
     return RedirectResponse("/tasks", status_code=303)
 
 @main_app.post("/pause/{task_id}")
-async def pause_task(task_id: str, current_user: MySQLUser = Depends(get_current_user)):
+async def pause_task(task_id: str, current_user: User = Depends(get_current_user)):
     # ... (rest of the function remains the same, just attached to main_app)
     status_path = get_task_status_path(task_id)
     if not status_path.exists(): raise HTTPException(status_code=404, detail="Task not found.")
@@ -523,7 +523,7 @@ async def pause_task(task_id: str, current_user: MySQLUser = Depends(get_current
 
 
 @main_app.post("/resume/{task_id}")
-async def resume_task(task_id: str, current_user: MySQLUser = Depends(get_current_user)):
+async def resume_task(task_id: str, current_user: User = Depends(get_current_user)):
     # ... (rest of the function remains the same, just attached to main_app)
     status_path = get_task_status_path(task_id)
     if not status_path.exists(): raise HTTPException(status_code=404, detail="Task not found.")
@@ -540,7 +540,7 @@ async def resume_task(task_id: str, current_user: MySQLUser = Depends(get_curren
     return RedirectResponse("/tasks", status_code=303)
 
 @main_app.post("/delete/{task_id}")
-async def delete_task(task_id: str, current_user: MySQLUser = Depends(get_current_user)):
+async def delete_task(task_id: str, current_user: User = Depends(get_current_user)):
     # ... (rest of the function remains the same, just attached to main_app)
     status_path = get_task_status_path(task_id)
     log_path = STATUS_DIR / f"{task_id}.log"
@@ -551,7 +551,7 @@ async def delete_task(task_id: str, current_user: MySQLUser = Depends(get_curren
     return RedirectResponse("/tasks", status_code=303)
 
 @main_app.get("/status/{task_id}", response_class=HTMLResponse)
-async def get_status(request: Request, task_id: str, current_user: MySQLUser = Depends(get_current_user)):
+async def get_status(request: Request, task_id: str, current_user: User = Depends(get_current_user)):
     # ... (rest of the function remains the same, just attached to main_app)
     lang = get_lang(request)
     status_file = STATUS_DIR / f"{task_id}.log"
@@ -561,7 +561,7 @@ async def get_status(request: Request, task_id: str, current_user: MySQLUser = D
     return templates.TemplateResponse("status.html", {"request": request, "task_id": task_id, "log_content": content, "lang": lang, "user": current_user.username})
 
 @main_app.get("/status/{task_id}/json")
-async def get_status_json(task_id: str, current_user: MySQLUser = Depends(get_current_user)):
+async def get_status_json(task_id: str, current_user: User = Depends(get_current_user)):
     # ... (rest of the function remains the same, just attached to main_app)
     status_path = get_task_status_path(task_id)
     log_path = STATUS_DIR / f"{task_id}.log"
@@ -576,7 +576,7 @@ async def get_status_json(task_id: str, current_user: MySQLUser = Depends(get_cu
     return {"status": status_data, "log": log_content}
 
 @main_app.get("/status/{task_id}/raw")
-async def get_status_raw(task_id: str, current_user: MySQLUser = Depends(get_current_user)):
+async def get_status_raw(task_id: str, current_user: User = Depends(get_current_user)):
     # ... (rest of the function remains the same, just attached to main_app)
     status_file = STATUS_DIR / f"{task_id}.log"
     if not status_file.exists():
@@ -585,7 +585,7 @@ async def get_status_raw(task_id: str, current_user: MySQLUser = Depends(get_cur
     return Response(content=content, media_type="text/plain")
 
 @main_app.post("/cleanup-logs")
-async def cleanup_logs(current_user: MySQLUser = Depends(get_current_user)):
+async def cleanup_logs(current_user: User = Depends(get_current_user)):
     """清理数据库中的旧日志"""
     from .logging_handler import cleanup_old_logs
     
@@ -596,7 +596,7 @@ async def cleanup_logs(current_user: MySQLUser = Depends(get_current_user)):
         return JSONResponse(content={"status": "error", "message": f"日志清理失败: {str(e)}"}, status_code=500)
 
 @main_app.get("/server-status/json")
-async def get_server_status(current_user: MySQLUser = Depends(get_current_user)):
+async def get_server_status(current_user: User = Depends(get_current_user)):
     """获取服务器状态信息"""
     import psutil
     import platform
@@ -657,13 +657,13 @@ async def get_server_status(current_user: MySQLUser = Depends(get_current_user))
     })
 
 @main_app.get("/tunnel-status")
-async def get_tunnel_status(current_user: MySQLUser = Depends(get_current_user)):
+async def get_tunnel_status(current_user: User = Depends(get_current_user)):
     """获取隧道状态"""
     status = tunnel_manager.get_tunnel_status()
     return JSONResponse(content=status)
 
 @main_app.post("/start-tunnel")
-async def start_tunnel(request: Request, current_user: MySQLUser = Depends(get_current_user)):
+async def start_tunnel(request: Request, current_user: User = Depends(get_current_user)):
     """启动隧道"""
     try:
         data = await request.json()
@@ -672,7 +672,7 @@ async def start_tunnel(request: Request, current_user: MySQLUser = Depends(get_c
         
         if not token:
             # 尝试从数据库获取保存的token
-            saved_token = mysql_config.get_config("tunnel_token")
+            saved_token = db_config.get_config("tunnel_token")
             if saved_token:
                 token = saved_token
             else:
@@ -682,7 +682,7 @@ async def start_tunnel(request: Request, current_user: MySQLUser = Depends(get_c
             success = tunnel_manager.start_cloudflare_tunnel(token)
             if success:
                 # 保存token到数据库
-                mysql_config.set_config("tunnel_token", token)
+                db_config.set_config("tunnel_token", token)
                 return JSONResponse(content={"status": "success", "message": "Cloudflare tunnel started"})
             else:
                 return JSONResponse(content={"status": "error", "message": "Failed to start Cloudflare tunnel"}, status_code=500)
@@ -694,7 +694,7 @@ async def start_tunnel(request: Request, current_user: MySQLUser = Depends(get_c
         return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
 
 @main_app.post("/stop-tunnel")
-async def stop_tunnel(current_user: MySQLUser = Depends(get_current_user)):
+async def stop_tunnel(current_user: User = Depends(get_current_user)):
     """停止隧道"""
     try:
         success = tunnel_manager.stop_tunnel()
@@ -796,13 +796,14 @@ def load_config_from_db():
     """从数据库加载配置"""
     try:
         # 检查是否有保存的tunnel token
-        saved_tunnel_token = mysql_config.get_config("tunnel_token")
+        saved_tunnel_token = db_config.get_config("tunnel_token")
         if saved_tunnel_token and not os.getenv("TUNNEL_TOKEN"):
             os.environ["TUNNEL_TOKEN"] = saved_tunnel_token
             
         # 检查是否有保存的domain
-        saved_domain = mysql_config.get_config("login_domain")
+        saved_domain = db_config.get_config("login_domain")
         if saved_domain:
+            pass
             
     except Exception as e:
         pass
