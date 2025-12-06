@@ -11,5 +11,4 @@ starlette
 python-jose
 gofilepy-api
 psutil
-mysql-connector-python
 passlib[argon2]
