@@ -56,15 +56,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run application for preview
+      - name: Run application for preview with real-time logs
         run: |
-          docker run -d --name web-dl-manager \
+          set +e
+          timeout 300s docker run --name web-dl-manager \
             -p 5492:5492 \
             -p 127.0.0.1:6275:6275 \
             -e DATABASE_URL='sqlite:///:memory:' \
             -e TUNNEL_TOKEN=${{ secrets.TUNNEL_TOKEN }} \
             ghcr.io/jyf0214/web-dl-manager:${{ needs.build_and_push.outputs.sha_tag }}
           
-          echo "Application is running in the background for preview."
-          echo "It will be stopped automatically after the workflow finishes."
-          sleep 300 # Wait for 5 minutes for testing purposes
+          exit_code=$?
+          set -e
+          
+          if [ $exit_code -eq 124 ]; then
+            echo "Application preview finished after 5 minutes."
+            exit 0
+          else
+            echo "Application exited with unexpected code: $exit_code"
+            # Optionally, fail the workflow if the app crashes before the timeout
+            # exit $exit_code
+          fi
