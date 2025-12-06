@@ -93,6 +93,7 @@ docker run -d \
 | `STATIC_SITE_GIT_URL` | 伪装站点 Git 仓库 URL | - |
 | `STATIC_SITE_GIT_BRANCH` | 伪装站点 Git 分支 | `main` |
 | `PRIVATE_MODE` | 私有模式 | `false` |
+| `TUNNEL_TOKEN` | Cloudflare Tunnel 令牌 | - |
 
 ## 支持的下载器
 
