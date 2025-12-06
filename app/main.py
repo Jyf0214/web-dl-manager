@@ -30,9 +30,15 @@ from .tasks import process_download_job
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password, hashed_password):
+    # bcrypt has a 72-byte limit, truncate if necessary
+    if len(plain_password.encode('utf-8')) > 72:
+        plain_password = plain_password[:70]  # Leave some margin
     return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password):
+    # bcrypt has a 72-byte limit, truncate if necessary
+    if len(password.encode('utf-8')) > 72:
+        password = password[:70]  # Leave some margin
     return pwd_context.hash(password)
 
 # --- FastAPI App Initialization ---
