@@ -380,31 +380,7 @@
             splitSizeContainer.style.display = this.checked ? 'block' : 'none';
         });
 
-        // --- Tunnel Logic ---
-        let tunnelStatusInterval;
-        function startTunnel() {
-            const token = document.getElementById('cloudflared-token').value;
-            if (!token) { alert('Please enter a Cloudflared token.'); return; }
-            fetch('/tunnel/start', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ token: token }),
-            }).then(r => r.json()).then(d => { alert(d.message); checkTunnelStatus(); });
-        }
-        function stopTunnel() {
-            fetch('/tunnel/stop', { method: 'POST' })
-            .then(r => r.json()).then(d => { alert(d.message); checkTunnelStatus(); });
-        }
-        function checkTunnelStatus() {
-            fetch('/tunnel/status').then(r => r.json()).then(data => {
-                // Tunnel logs are disabled in UI
-            });
-        }
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            checkTunnelStatus();
-            tunnelStatusInterval = setInterval(checkTunnelStatus, 5000);
-        });
+        // --- Removed Tunnel Logic ---
 
         // --- Server Status Logic ---
         let statusInterval;
