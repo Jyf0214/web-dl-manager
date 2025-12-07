@@ -66,6 +66,11 @@ else:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    
+    changelog_file = BASE_DIR.parent / "CHANGELOG.md"
+    if not changelog_file.exists():
+        changelog_file.write_text("# Changelog\n\nNo changelog information available yet. Please run the updater to generate the changelog.")
+        
     mysql_handler = MySQLLogHandler()
     
     # 检查是否启用DEBUG模式
@@ -649,7 +654,7 @@ def get_system_uptime():
     return f"{days}d {hours}h {minutes}m"
 
 @main_app.get("/server-status/json")
-async def get_server_status(current_user: User = Depends(get_current_user)):
+async def get_server_status():
     """获取服务器状态信息"""
     import psutil
     import platform

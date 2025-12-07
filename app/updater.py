@@ -10,7 +10,7 @@ import httpx
 
 # --- Configuration ---
 OWNER = "Jyf0214"
-REPO = "gallery-dl-web"
+REPO = "web-dl-manager"
 BRANCH = "main"
 BASE_DIR = Path(__file__).resolve().parent.parent
 VERSION_INFO_FILE = BASE_DIR / ".version_info"
@@ -99,27 +99,29 @@ def restart_application():
     """
     log("Preparing to restart application...")
     
-    idle_check_url = "http://localhost:8000/api/active_tasks"
+    idle_check_url = "http://127.0.0.1:6275/server-status/json"
     max_retries = 5
     retry_delay = 10 # seconds
 
     for attempt in range(max_retries):
         try:
+            # The /server-status/json endpoint requires authentication
+            # We can't provide credentials here, so we assume the script is running on the same host
+            # and can access the endpoint without auth. This is a limitation.
             with httpx.Client() as client:
                 response = client.get(idle_check_url, timeout=10)
                 response.raise_for_status()
                 data = response.json()
-                active_downloads = data.get("active_downloads", 0)
+                active_tasks = data.get("application", {}).get("active_tasks", 0)
                 
-                if active_downloads == 0:
-                    log("No active downloads. Proceeding with restart.")
+                if active_tasks == 0:
+                    log("No active tasks. Proceeding with restart.")
                     os.kill(1, signal.SIGHUP)
                     return # Exit after sending signal
                 else:
-                    log(f"There are {active_downloads} active downloads. Aborting restart.")
-                    log("Please wait for downloads to complete and restart manually.")
+                    log(f"There are {active_tasks} active tasks. Aborting restart.")
+                    log("Please wait for tasks to complete and restart manually.")
                     return # Exit, do not proceed
-
         except httpx.RequestError as e:
             log(f"Could not connect to the application to check for active tasks (attempt {attempt + 1}/{max_retries}): {e}")
             if attempt < max_retries - 1:
