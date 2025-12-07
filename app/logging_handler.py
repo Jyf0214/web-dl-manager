@@ -55,68 +55,38 @@ MAX_LOG_TABLE_SIZE_MB = 500
 MAX_LOG_TABLE_SIZE_BYTES = MAX_LOG_TABLE_SIZE_MB * 1024 * 1024
 
 def cleanup_old_logs():
+    """Deletes the oldest 20% of logs from the database."""
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
             
-            if db_type == 'mysql':
-                # Get current table size in bytes
-                cursor.execute(f"""
-                    SELECT data_length + index_length
-                    FROM information_schema.tables
-                    WHERE table_schema = DATABASE() AND table_name = 'logs';
-                """)
-                result = cursor.fetchone()
-                current_size_bytes = result[0] if result else 0
+            cursor.execute("SELECT COUNT(*) FROM logs")
+            total_rows = cursor.fetchone()[0]
+            
+            if total_rows == 0:
+                logging.info("No logs to clean up.")
+                return
+
+            rows_to_delete = int(total_rows * 0.2)
+            
+            if rows_to_delete > 0:
+                if db_type == 'mysql':
+                    cursor.execute(
+                        "DELETE FROM logs ORDER BY timestamp ASC LIMIT %s",
+                        (rows_to_delete,)
+                    )
+                elif db_type == 'sqlite':
+                    cursor.execute(
+                        "DELETE FROM logs WHERE id IN (SELECT id FROM logs ORDER BY timestamp ASC LIMIT ?)",
+                        (rows_to_delete,)
+                    )
                 
-                if current_size_bytes > MAX_LOG_TABLE_SIZE_BYTES:
-                    logger.warning(f"Log table size ({current_size_bytes / (1024*1024):.2f}MB) exceeds limit ({MAX_LOG_TABLE_SIZE_MB}MB). Cleaning up old logs...")
-                    
-                    # Calculate how many rows to delete.
-                    # This is a rough estimation and might need fine-tuning based on average log entry size.
-                    # For simplicity, we'll delete a percentage of the oldest logs.
-                    # Or, even better, delete until the size is below the threshold.
-                    
-                    # Find the 'id' of the log entry that is roughly at the point where we want to truncate
-                    # This is a more robust way to delete by size, though still an approximation.
-                    # A more precise method would involve iterating and checking size.
-                    # For now, let's target deleting a chunk (e.g., 20% of the table)
-                    
-                    cursor.execute("SELECT COUNT(*) FROM logs")
-                    total_rows = cursor.fetchone()[0]
-                    
-                    if total_rows > 0:
-                        rows_to_delete = int(total_rows * 0.2) # Delete 20% of the oldest logs
-                        if rows_to_delete > 0:
-                            cursor.execute(f"""
-                                DELETE FROM logs
-                                ORDER BY timestamp ASC
-                                LIMIT %s;
-                            """, (rows_to_delete,))
-                            conn.commit()
-                            logger.info(f"Cleaned up {rows_to_delete} oldest log entries.")
-                            
-            elif db_type == 'sqlite':
-                # For SQLite, we'll use a simpler approach based on row count
-                cursor.execute("SELECT COUNT(*) FROM logs")
-                total_rows = cursor.fetchone()[0]
+                conn.commit()
+                logging.info(f"Successfully cleaned up {rows_to_delete} oldest log entries.")
+            else:
+                logging.info("Not enough log entries to perform a cleanup.")
                 
-                # If we have more than 10000 rows, delete the oldest 20%
-                if total_rows > 10000:
-                    logger.warning(f"Log table has {total_rows} rows. Cleaning up old logs...")
-                    rows_to_delete = int(total_rows * 0.2) # Delete 20% of the oldest logs
-                    if rows_to_delete > 0:
-                        cursor.execute("""
-                            DELETE FROM logs
-                            WHERE id IN (
-                                SELECT id FROM logs
-                                ORDER BY timestamp ASC
-                                LIMIT ?
-                            )
-                        """, (rows_to_delete,))
-                        conn.commit()
-                        logger.info(f"Cleaned up {rows_to_delete} oldest log entries.")
-                        
             cursor.close()
     except Exception as e:
         sys.stderr.write(f"Error during log cleanup: {e}\n")
+        logging.error(f"Error during log cleanup: {e}")
