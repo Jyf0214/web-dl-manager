@@ -87,65 +87,35 @@ docker run -d \
 
 ## 环境变量
 
+通过以下环境变量配置应用程序。如果为上传服务配置了 `WDM_` 前缀的环境变量，则前端界面中相应的输入字段将被禁用，用户无法进行修改。
+
 | 变量名 | 描述 | 默认值 |
-|--------|------|--------|
-| `DATABASE_URL` | 数据库连接字符串 | `sqlite:///webdl-manager.db` |
-| `SESSION_SECRET_KEY` | 会话密钥 | `web-dl-manager-shared-secret-key-2024` |
+|---|---|---|
+| `DATABASE_URL` | 数据库连接字符串，支持MySQL和SQLite | `sqlite:///webdl-manager.db` |
+| `SESSION_SECRET_KEY` | 会话加密密钥 | `web-dl-manager-shared-secret-key-2024` |
 | `STATIC_SITE_GIT_URL` | 伪装站点 Git 仓库 URL | - |
 | `STATIC_SITE_GIT_BRANCH` | 伪装站点 Git 分支 | `main` |
-| `PRIVATE_MODE` | 私有模式 | `false` |
-| `TUNNEL_TOKEN` | Cloudflare Tunnel 令牌 | - |
-
-## 支持的下载器
-
-### gallery-dl
-- 支持数百个图片画廊网站
-- 需要时可配置 DeviantArt API 凭证
-- 支持代理和速率限制
-
-### megadl (来自 megatools 套件)
-- 从 MEGA.nz 公共链接下载文件
-- 无需登录即可下载公开分享的文件
-- 支持速率限制 (`--limit-speed` 参数)
-
-## 支持的上传服务
-
-### WebDAV
-- 支持任何 WebDAV 兼容的存储
-- 需要 URL、用户名和密码
-
-### S3 兼容
-- 支持 AWS S3 和其他 S3 兼容服务
-- 需要访问密钥、密钥、区域和端点
-
-### Backblaze B2
-- 云存储服务
-- 需要账户 ID 和应用密钥
-
-### gofile.io
-- 免费文件托管服务
-- 需要 API 令牌（可选文件夹 ID）
-
-### MEGA
-- 云存储服务
-- 需要邮箱和密码
-- 支持两步验证码（可选）
-
-### Openlist/Alist
-- 自托管网盘
-- 需要 URL、用户名和密码
-
-## 环境变量
-
-| 变量名 | 默认值 | 描述 |
-|--------|--------|------|
-| `DEBUG_MODE` | `false` | 启用DEBUG模式，输出详细的工作流日志 |
-| `DATABASE_URL` | `sqlite:///webdl-manager.db` | 数据库连接字符串，支持MySQL和SQLite |
-| `SESSION_SECRET_KEY` | `web-dl-manager-shared-secret-key-2024` | 会话加密密钥 |
-| `PRIVATE_MODE` | `false` | 启用私有模式 |
-| `APP_USERNAME` | `Jyf0214` | 默认管理员用户名 |
-| `APP_PASSWORD` | (空) | 默认管理员密码 |
-| `AVATAR_URL` | `https://github.com/Jyf0214.png` | 用户头像URL |
+| `PRIVATE_MODE` | 启用私有模式 | `false` |
+| `TUNNEL_TOKEN` | Cloudflare Tunnel 令牌 (用于自动启动，Web UI 中不可配置) | - |
+| `DEBUG_MODE` | 启用DEBUG模式，输出详细的工作流日志 | `false` |
+| `APP_USERNAME` | 默认管理员用户名 | `Jyf0214` |
+| `APP_PASSWORD` | 默认管理员密码 | (空) |
+| `AVATAR_URL` | 用户头像URL | `https://github.com/Jyf0214.png` |
+| `WDM_WEBDAV_URL` | WebDAV 上传 URL | - |
+| `WDM_WEBDAV_USER` | WebDAV 用户名 | - |
+| `WDM_WEBDAV_PASS` | WebDAV 密码 | - |
+| `WDM_S3_PROVIDER` | S3 服务提供商 | - |
+| `WDM_S3_ACCESS_KEY_ID` | S3 访问密钥 ID | - |
+| `WDM_S3_SECRET_ACCESS_KEY` | S3 秘密访问密钥 | - |
+| `WDM_S3_REGION` | S3 区域 | - |
+| `WDM_S3_ENDPOINT` | S3 端点 URL | - |
+| `WDM_B2_ACCOUNT_ID` | Backblaze B2 账户 ID | - |
+| `WDM_B2_APPLICATION_KEY` | Backblaze B2 应用密钥 | - |
+| `WDM_GOFILE_TOKEN` | Gofile.io API 令牌 | - |
+| `WDM_GOFILE_FOLDER_ID` | Gofile.io 文件夹 ID | - |
+| `WDM_OPENLIST_URL` | Openlist/Alist URL | - |
+| `WDM_OPENLIST_USER` | Openlist/Alist 用户名 | - |
+| `WDM_OPENLIST_PASS` | Openlist/Alist 密码 | - |
 
 ## 安全注意事项
 
