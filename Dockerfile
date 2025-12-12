@@ -29,9 +29,9 @@ RUN mkdir -p /app/app /data/downloads /data/archives /data/status && chown -R 10
 # Configure git to clone the repository
 ARG REPO_URL=https://github.com/Jyf0214/web-dl-manager.git
 ARG REPO_BRANCH=main
-RUN git clone --depth 1 --branch ${REPO_BRANCH} ${REPO_URL} /app_tmp && \
-    mv /app_tmp/* /app/ && \
-    rm -rf /app_tmp && \
+# Clear /app directory and clone directly into it
+RUN find /app -mindepth 1 -delete 2>/dev/null || true && \
+    git clone --depth 1 --branch ${REPO_BRANCH} ${REPO_URL} /app && \
     # Initialize version info file from git SHA
     cd /app && git rev-parse HEAD > /app/.version_info && \
     # Set permissions
