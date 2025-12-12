@@ -23,14 +23,15 @@ RUN useradd -m -u 1000 user
 
 WORKDIR /app
 
-# Create necessary directories and set permissions
-RUN mkdir -p /app/app /data/downloads /data/archives /data/status && chown -R 1000:1000 /app /data
+# Create necessary directories
+RUN mkdir -p /app/app /data/downloads /data/archives /data/status
 
 # Configure git to clone the repository
 ARG REPO_URL=https://github.com/Jyf0214/web-dl-manager.git
 ARG REPO_BRANCH=main
 # Clear /app directory and clone directly into it
 RUN find /app -mindepth 1 -delete 2>/dev/null || true && \
+    git config --global --add safe.directory /app && \
     git clone --depth 1 --branch ${REPO_BRANCH} ${REPO_URL} /app && \
     # Initialize version info file from git SHA
     cd /app && git rev-parse HEAD > /app/.version_info && \
