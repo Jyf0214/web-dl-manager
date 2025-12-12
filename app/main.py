@@ -341,6 +341,36 @@ async def get_changelog(user: User = Depends(get_current_user)):
         content = changelog_file.read_text()
     return Response(content=content, media_type="text/plain")
 
+@main_app.get("/updates", response_class=HTMLResponse)
+async def updates_page(request: Request, current_user: User = Depends(get_current_user)):
+    """Update management page"""
+    lang = get_lang(request)
+    return templates.TemplateResponse("updates.html", {"request": request, "lang": lang})
+
+@main_app.get("/api/updates/check")
+async def check_updates(user: User = Depends(get_current_user)):
+    """Check if updates are available"""
+    result = updater.check_for_updates()
+    return JSONResponse(content=result)
+
+@main_app.get("/api/updates/info")
+async def get_update_info(user: User = Depends(get_current_user)):
+    """Get comprehensive update information"""
+    result = updater.get_update_info()
+    return JSONResponse(content=result)
+
+@main_app.post("/api/updates/dependencies")
+async def update_dependencies_api(user: User = Depends(get_current_user)):
+    """Update Python dependencies"""
+    result = updater.update_dependencies()
+    return JSONResponse(content=result)
+
+@main_app.post("/api/updates/pages")
+async def update_page_library_api(user: User = Depends(get_current_user)):
+    """Update page library (templates and static resources)"""
+    result = updater.update_page_library()
+    return JSONResponse(content=result)
+
 def get_lang(request: Request):
     lang_code = request.cookies.get("lang", "en")
     return LANGUAGES.get(lang_code, LANGUAGES["en"])
@@ -349,23 +379,14 @@ def get_lang(request: Request):
 async def get_downloader(request: Request, current_user: User = Depends(get_current_user)):
     lang = get_lang(request)
     
-    # Read upload configs from environment variables
-    upload_configs = {
-        "webdav_url": os.getenv("WDM_WEBDAV_URL"),
-        "webdav_user": os.getenv("WDM_WEBDAV_USER"),
-        "webdav_pass": os.getenv("WDM_WEBDAV_PASS"),
-        "s3_provider": os.getenv("WDM_S3_PROVIDER"),
-        "s3_access_key_id": os.getenv("WDM_S3_ACCESS_KEY_ID"),
-        "s3_secret_access_key": os.getenv("WDM_S3_SECRET_ACCESS_KEY"),
-        "s3_region": os.getenv("WDM_S3_REGION"),
-        "s3_endpoint": os.getenv("WDM_S3_ENDPOINT"),
-        "b2_account_id": os.getenv("WDM_B2_ACCOUNT_ID"),
-        "b2_application_key": os.getenv("WDM_B2_APPLICATION_KEY"),
-        "gofile_token": os.getenv("WDM_GOFILE_TOKEN"),
-        "gofile_folder_id": os.getenv("WDM_GOFILE_FOLDER_ID"),
-        "openlist_url": os.getenv("WDM_OPENLIST_URL"),
-        "openlist_user": os.getenv("WDM_OPENLIST_USER"),
-        "openlist_pass": os.getenv("WDM_OPENLIST_PASS"),
+    # 不再将环境变量配置传递给前端，保护敏感信息
+    # 检查是否有任何上传服务已配置（仅用于UI提示，不传递具体值）
+    services_configured = {
+        "webdav_configured": bool(os.getenv("WDM_WEBDAV_URL") and os.getenv("WDM_WEBDAV_USER")),
+        "s3_configured": bool(os.getenv("WDM_S3_ACCESS_KEY_ID") and os.getenv("WDM_S3_SECRET_ACCESS_KEY")),
+        "b2_configured": bool(os.getenv("WDM_B2_ACCOUNT_ID") and os.getenv("WDM_B2_APPLICATION_KEY")),
+        "gofile_configured": bool(os.getenv("WDM_GOFILE_TOKEN")),
+        "openlist_configured": bool(os.getenv("WDM_OPENLIST_URL") and os.getenv("WDM_OPENLIST_USER")),
     }
     
     return templates.TemplateResponse("downloader.html", {
@@ -373,7 +394,7 @@ async def get_downloader(request: Request, current_user: User = Depends(get_curr
         "lang": lang, 
         "user": current_user.username, 
         "avatar_url": AVATAR_URL,
-        "upload_configs": upload_configs
+        "services_configured": services_configured
     })
 
 @main_app.get("/login", response_class=HTMLResponse)
