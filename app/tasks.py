@@ -29,35 +29,87 @@ debug_enabled = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
 async def run_command(command: str, command_to_log: str, status_file: Path, task_id: str):
     """
-    Runs a shell command asynchronously, logs fake AI progress, and stores its PGID.
-    The actual command output is discarded to /dev/null.
+    Runs a shell command asynchronously with auto-retry and improved error logging.
+    The actual command output is captured and logged for debugging.
     """
-    with open(status_file, "a", encoding="utf-8") as log_file:
-        process = await asyncio.create_subprocess_shell(
-            command,
-            stdout=log_file,
-            stderr=log_file,
-            preexec_fn=os.setsid
-        )
+    max_retries = 3
+    retry_delays = [5, 10, 15]  # seconds
+    
+    last_exception = None
+    
+    for attempt in range(max_retries):
+        try:
+            with open(status_file, "a", encoding="utf-8") as log_file:
+                log_file.write(f"\n[Attempt {attempt + 1}/{max_retries}] Executing command: {command_to_log}\n")
+                process = await asyncio.create_subprocess_shell(
+                    command,
+                    stdout=log_file,
+                    stderr=log_file,
+                    preexec_fn=os.setsid
+                )
 
-    try:
-        pgid = os.getpgid(process.pid)
-        update_task_status(task_id, {"pgid": pgid})
-    except ProcessLookupError:
-        pass
+            try:
+                pgid = os.getpgid(process.pid)
+                update_task_status(task_id, {"pgid": pgid})
+            except ProcessLookupError:
+                pass
 
-    await process.wait()
+            await process.wait()
+            update_task_status(task_id, {"pgid": None})
 
-    update_task_status(task_id, {"pgid": None})
-
-    if process.returncode != 0:
+            if process.returncode == 0:
+                with open(status_file, "a") as f:
+                    f.write(f"\n[Attempt {attempt + 1}] Task finished successfully.\n")
+                return
+            else:
+                # Log detailed error information
+                with open(status_file, "a") as f:
+                    f.write(f"\n--- TASK FAILED (Attempt {attempt + 1}/{max_retries}, Exit Code: {process.returncode}) ---\n")
+                    if debug_enabled:
+                        f.write(f"Debug mode enabled - error details are in the log above.\n")
+                    else:
+                        f.write(f"Error details are available in the log above.\n")
+                
+                # Store the exception for final raise
+                last_exception = RuntimeError(f"Command failed with exit code {process.returncode}.")
+                
+                # If this was the last attempt, break and raise
+                if attempt == max_retries - 1:
+                    break
+                    
+                # Wait before retry
+                retry_delay = retry_delays[attempt]
+                with open(status_file, "a") as f:
+                    f.write(f"Waiting {retry_delay} seconds before retry...\n")
+                await asyncio.sleep(retry_delay)
+                
+                with open(status_file, "a") as f:
+                    f.write(f"Retrying command...\n")
+                    
+        except Exception as e:
+            with open(status_file, "a") as f:
+                f.write(f"\n--- EXCEPTION DURING COMMAND EXECUTION (Attempt {attempt + 1}/{max_retries}) ---\n")
+                f.write(f"Exception: {str(e)}\n")
+                if debug_enabled:
+                    import traceback
+                    f.write(f"Traceback:\n{traceback.format_exc()}\n")
+            
+            last_exception = e
+            
+            # If this was the last attempt, break and raise
+            if attempt == max_retries - 1:
+                break
+                
+            # Wait before retry
+            retry_delay = retry_delays[attempt]
+            await asyncio.sleep(retry_delay)
+    
+    # If we get here, all retries failed
+    if last_exception:
         with open(status_file, "a") as f:
-            f.write(f"\n--- TASK FAILED (Exit Code: {process.returncode}) ---\n")
-            f.write("The actual error is not displayed for security reasons.\n")
-        raise RuntimeError(f"Command failed with exit code {process.returncode}.")
-    else:
-        with open(status_file, "a") as f:
-            f.write("\nTask finished successfully.\n")
+            f.write(f"\n--- ALL RETRY ATTEMPTS FAILED ---\n")
+            f.write(f"Final error: {str(last_exception)}\n")
+        raise last_exception
 
 
 async def upload_uncompressed(task_id: str, service: str, upload_path: str, params: dict, status_file: Path):
