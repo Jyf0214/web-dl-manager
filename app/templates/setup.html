@@ -1,52 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang.get('lang_code', 'en') }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Setup Admin Account - Web-DL-Manager</title>
+    <title>Setup Admin Account - {{ lang.app_title }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f8f9fa;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .setup-container {
-            max-width: 450px;
-            padding: 2rem;
-            border-radius: 0.75rem;
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-            background-color: #ffffff;
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
-    <div class="setup-container">
-        <h1 class="h4 mb-4 text-center">Web-DL-Manager: Setup Admin Account</h1>
+<body class="login-page">
+    <div class="form-container fade-in">
+        <h1 class="form-title">
+            <i class="bi bi-person-gear"></i> {{ lang.app_title }}: Setup Admin Account
+        </h1>
 
         {% if error %}
         <div class="alert alert-danger" role="alert">
-            {{ error }}
+            <i class="bi bi-exclamation-triangle"></i> {{ error }}
         </div>
         {% endif %}
 
         <form action="/setup" method="post">
             <div class="mb-3">
-                <label for="username" class="form-label">Admin Username</label>
+                <label for="username" class="form-label">
+                    <i class="bi bi-person"></i> Admin Username
+                </label>
                 <input type="text" class="form-control" id="username" name="username" required autocomplete="off">
             </div>
             <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
+                <label for="password" class="form-label">
+                    <i class="bi bi-key"></i> Password
+                </label>
                 <input type="password" class="form-control" id="password" name="password" required autocomplete="new-password">
             </div>
             <div class="mb-3">
-                <label for="confirm_password" class="form-label">Confirm Password</label>
+                <label for="confirm_password" class="form-label">
+                    <i class="bi bi-key-fill"></i> Confirm Password
+                </label>
                 <input type="password" class="form-control" id="confirm_password" name="confirm_password" required autocomplete="new-password">
             </div>
             <div class="d-grid gap-2">
-                <button type="submit" class="btn btn-primary">Create Admin Account</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-shield-check"></i> Create Admin Account
+                </button>
             </div>
         </form>
     </div>
