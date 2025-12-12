@@ -300,7 +300,7 @@ async def get_blog_index(request: Request):
 @main_app.post("/update")
 async def update_app(background_tasks: BackgroundTasks, user: User = Depends(get_current_user)):
     result = updater.run_update()
-    if result.get("status") == "success":
+    if result.get("status") == "success" and result.get("updated"):
         background_tasks.add_task(updater.restart_application)
     return JSONResponse(content=result)
 
