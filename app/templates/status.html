@@ -1,66 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang.get('lang_code', 'en') }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ lang.job_status_title }} {{ task_id }}</title>
+    <title>{{ lang.job_status_title }} - {{ task_id }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        body { background-color: #f0f2f5; }
-        .card { margin-top: 50px; }
-        #log-container {
-            background-color: #212529;
-            color: #f8f9fa;
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
-            font-size: 0.9rem;
-            border-radius: 0.375rem;
-            height: 60vh;
-            overflow-y: auto;
-            white-space: pre-wrap; /* Preserve whitespace and wrap text */
-            word-wrap: break-word; /* Break long words */
-            counter-reset: line;
-        }
         .log-header {
             cursor: pointer;
             user-select: none;
         }
         .log-header:hover {
-            color: #007bff;
-        }
-        .log-line {
-            display: block;
-            counter-increment: line;
-            padding-left: 4em;
-            position: relative;
-        }
-        .log-line::before {
-            content: counter(line);
-            position: absolute;
-            left: 0;
-            width: 3em;
-            text-align: right;
-            color: #888;
-            padding-right: 1em;
-            user-select: none;
-        }
-        .log-line.selected {
-            background-color: #343a40;
+            color: var(--primary-color);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-10">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-end mb-3">
-                            <button class="btn btn-sm btn-outline-primary me-2" onclick="setLanguage('en')">English</button>
-                            <button class="btn btn-sm btn-outline-primary" onclick="setLanguage('zh')">中文</button>
-                        </div>
-                        <h1 class="card-title mb-4">{{ lang.job_status_title }}</h1>
-                        <p class="text-muted">{{ lang.task_id_label }} <span class="font-monospace">{{ task_id }}</span></p>
+    <!-- 导航栏 -->
+    {% include 'components/navbar.html' %}
+    
+    <div class="container-main">
+        <div class="card fade-in">
+            <div class="card-body">
+                <h1 class="card-title mb-4">
+                    <i class="bi bi-activity"></i> {{ lang.job_status_title }}
+                </h1>
+                <p class="text-muted">{{ lang.task_id_label }} <span class="font-monospace">{{ task_id }}</span></p>
                         
                         <div class="d-flex justify-content-end align-items-center mb-2">
                             <button class="btn btn-sm btn-outline-secondary me-2" id="decrease-font-size">A-</button>
@@ -73,7 +40,7 @@
                             </h5>
                             <div class="collapse show" id="downloadLogCollapse">
                                 <div class="position-relative">
-                                    <pre id="log-container" class="p-3"><code></code></pre>
+                                    <div id="log-container" class="p-3"><code></code></div>
                                     <button class="btn btn-light btn-sm position-absolute top-0 end-0 m-2" id="copy-download-log-button" title="{{ lang.copy_button }}">
                                         <i class="bi bi-clipboard"></i> {{ lang.copy_button }}
                                     </button>
@@ -92,19 +59,14 @@
                         </div>
                     </div>
                 </div>
-                 <div class="text-center mt-3 footer">
-                    <p class="text-muted small">{{ lang.powered_by }}</p>
+                 <div class="footer">
+                    <p class="text-muted">{{ lang.powered_by }}</p>
                 </div>
             </div>
-        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function setLanguage(langCode) {
-            document.cookie = `lang=${langCode}; path=/; max-age=31536000`;
-            location.reload();
-        }
 
         const taskId = "{{ task_id }}";
         const downloadLogContainer = document.getElementById('log-container');

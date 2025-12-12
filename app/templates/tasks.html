@@ -1,41 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang.get('lang_code', 'en') }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ lang.all_tasks_title }}</title>
+    <title>{{ lang.app_title }} - {{ lang.all_tasks_title }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .status-badge {
-            font-size: 0.9em;
-        }
-        .task-card {
-            margin-bottom: 1rem;
-        }
-        .command-block {
-            background-color: #f8f9fa;
-            padding: 0.5rem;
-            border-radius: 0.25rem;
-            font-family: monospace;
-            word-break: break-all;
-            font-size: 0.8rem;
-        }
-        .error-block {
-            color: #dc3545;
-            font-size: 0.9em;
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <div class="container mt-5">
+    <!-- 导航栏 -->
+    {% include 'components/navbar.html' %}
+    
+    <div class="container-main">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>{{ lang.all_tasks_title }}</h1>
+            <h1>
+                <i class="bi bi-list-task"></i> {{ lang.all_tasks_title }}
+            </h1>
             <div class="d-flex align-items-center">
                 <span id="current-version" class="me-2"></span>
-                <button id="cleanup-logs-button" class="btn btn-warning btn-sm me-2">清理日志</button>
-                <button id="update-button" class="btn btn-success btn-sm me-2">更新</button>
-                <button id="changelog-button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#changelogModal">更新日志</button>
-                <a href="/downloader" class="btn btn-primary ms-3">{{ lang.start_new_job_button }}</a>
+                <button id="cleanup-logs-button" class="btn btn-warning btn-sm me-2">
+                    <i class="bi bi-trash"></i> 清理日志
+                </button>
+                <button id="update-button" class="btn btn-success btn-sm me-2">
+                    <i class="bi bi-arrow-clockwise"></i> 更新
+                </button>
+                <button id="changelog-button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#changelogModal">
+                    <i class="bi bi-journal-text"></i> 更新日志
+                </button>
+                <a href="/downloader" class="btn btn-primary ms-3">
+                    <i class="bi bi-plus-circle"></i> {{ lang.start_new_job_button }}
+                </a>
             </div>
         </div>
 
@@ -112,17 +107,30 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="changelogModalLabel">更新日志</h5>
+                    <h5 class="modal-title" id="changelogModalLabel">
+                        <i class="bi bi-journal-text"></i> 更新日志
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="changelog-content">
                     <!-- Changelog content will be loaded here -->
-                    加载中...
+                    <div class="spinner-wrapper">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        加载中...
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> 关闭
+                    </button>
                 </div>
             </div>
+        </div>
+        
+        <div class="footer">
+            <p class="text-muted">{{ lang.powered_by }}</p>
         </div>
     </div>
 

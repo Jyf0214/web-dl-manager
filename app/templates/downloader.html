@@ -1,75 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang.get('lang_code', 'en') }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web-DL-Manager</title>
+    <title>{{ lang.app_title }} - {{ lang.downloader_label }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        body {
-            background-color: #f8f9fa;
-        }
-        .main-container {
-            max-width: 960px;
-            margin-top: 2rem;
-            margin-bottom: 2rem;
-        }
-        .navbar-brand {
-            font-weight: 600;
-        }
-        .card {
-            border: none;
-            border-radius: 0.75rem;
-        }
-        .accordion-button:not(.collapsed) {
-            background-color: #e9ecef;
-            color: #212529;
-        }
-        .form-text {
-            font-size: 0.875em;
-        }
         .service-config {
-            border-left: 3px solid #0d6efd;
-            padding-left: 1rem;
-            margin-top: 1rem;
+            border-left: 3px solid var(--primary-color);
+            padding-left: var(--spacing-md);
+            margin-top: var(--spacing-md);
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
-        <div class="container-fluid main-container">
-            <a class="navbar-brand" href="/downloader">{{ lang.app_title }}</a>
-            <div class="d-flex align-items-center">
-                <a href="/tasks" class="btn btn-outline-primary me-2"><i class="bi bi-list-task"></i> {{ lang.all_tasks_title }}</a>
-                <button onclick="toggleServerStatus()" class="btn btn-outline-info me-3"><i class="bi bi-hdd-stack"></i> Server Status</button>
-                <div class="dropdown me-3">
-                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-translate"></i>
-                    </button>
-                    <ul class="dropdown-menu" aria-labelledby="languageDropdown">
-                        <li><a class="dropdown-item" href="#" onclick="setLanguage('en')">English</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="setLanguage('zh')">中文</a></li>
-                    </ul>
-                </div>
-                {% if user %}
-                <div class="dropdown">
-                    <a href="#" class="d-block link-dark text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="{{ avatar_url }}" alt="Avatar" class="rounded-circle" width="32" height="32">
-                    </a>
-                    <ul class="dropdown-menu text-small dropdown-menu-end" aria-labelledby="userDropdown">
-                        <li><span class="dropdown-item-text">Signed in as <strong>{{ user }}</strong></span></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/change_password">Change Password</a></li>
-                        <li><a class="dropdown-item" href="/logout">Logout</a></li>
-                    </ul>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </nav>
+    <!-- 导航栏 -->
+    {% include 'components/navbar.html' %}
 
-    <div class="container main-container">
+    <div class="container-main">
         <form action="/download" method="post" id="download-form">
             <div class="card shadow-sm">
                 <div class="card-body p-4">
@@ -324,10 +274,6 @@
         
             <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function setLanguage(langCode) {
-            document.cookie = `lang=${langCode}; path=/; max-age=31536000`;
-            location.reload();
-        }
 
         function showConfig() {
             const selectedService = document.getElementById('upload_service').value;

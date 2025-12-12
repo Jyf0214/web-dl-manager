@@ -1,0 +1,367 @@
+/* Web-DL-Manager 统一样式文件 */
+
+/* ===== 基础样式 ===== */
+:root {
+    /* 主题色彩 */
+    --primary-gradient-start: #667eea;
+    --primary-gradient-end: #764ba2;
+    --primary-color: #667eea;
+    --primary-hover: #5a67d8;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --info-color: #0dcaf0;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    
+    /* 中性色彩 */
+    --light-bg: #f8f9fa;
+    --white: #ffffff;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --text-muted: #adb5bd;
+    --border-color: #dee2e6;
+    
+    /* 间距 */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 3rem;
+    
+    /* 圆角 */
+    --border-radius-sm: 0.375rem;
+    --border-radius-md: 0.75rem;
+    --border-radius-lg: 1rem;
+    
+    /* 阴影 */
+    --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+}
+
+/* ===== 全局样式 ===== */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--light-bg);
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+/* ===== 通用组件 ===== */
+.container-main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+.card {
+    border: none;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.card-header {
+    border-radius: var(--border-radius-md) var(--border-radius-md) 0 0 !important;
+    font-weight: 600;
+    padding: var(--spacing-md);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary-hover) 0%, #6b46c1 100%);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-outline-primary {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+}
+
+/* ===== 导航栏 ===== */
+.navbar-custom {
+    background-color: var(--white);
+    box-shadow: var(--shadow-sm);
+    padding: var(--spacing-sm) 0;
+}
+
+.navbar-brand {
+    font-weight: 600;
+    color: var(--primary-color) !important;
+    font-size: 1.25rem;
+}
+
+.navbar-brand:hover {
+    color: var(--primary-hover) !important;
+}
+
+.navbar-avatar {
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+}
+
+/* ===== 页面头部 ===== */
+.page-header {
+    background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
+    color: var(--white);
+    padding: var(--spacing-xl) var(--spacing-md);
+    border-radius: var(--border-radius-lg);
+    margin-bottom: var(--spacing-xl);
+    text-align: center;
+}
+
+.page-header h1 {
+    font-weight: 700;
+    margin-bottom: var(--spacing-md);
+}
+
+.page-header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+/* ===== 特性卡片 ===== */
+.feature-card {
+    transition: transform 0.2s;
+    height: 100%;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+}
+
+.feature-card .card-title {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* ===== 表单样式 ===== */
+.form-container {
+    background-color: var(--white);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-xl);
+    margin: var(--spacing-xl) auto;
+    max-width: 450px;
+}
+
+.form-title {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* ===== 登录页面特殊样式 ===== */
+.login-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background-color: var(--light-bg);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 450px;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
+    border: none;
+}
+
+.login-card .card-header {
+    background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
+    color: var(--white);
+    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0 !important;
+    padding: var(--spacing-xl);
+    text-align: center;
+}
+
+.login-card .card-body {
+    padding: var(--spacing-xl);
+}
+
+/* ===== 状态页面样式 ===== */
+.log-container {
+    background-color: #212529;
+    color: #f8f9fa;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    font-size: 0.9rem;
+    border-radius: var(--border-radius-sm);
+    height: 60vh;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    counter-reset: line;
+    padding: var(--spacing-md);
+}
+
+.log-line {
+    display: block;
+    counter-increment: line;
+    padding-left: 4em;
+    position: relative;
+}
+
+.log-line::before {
+    content: counter(line);
+    position: absolute;
+    left: 0;
+    width: 3em;
+    text-align: right;
+    color: #888;
+    padding-right: 1em;
+    user-select: none;
+}
+
+.log-line.selected {
+    background-color: #343a40;
+}
+
+/* ===== 任务卡片 ===== */
+.task-card {
+    margin-bottom: var(--spacing-md);
+}
+
+.status-badge {
+    font-size: 0.9em;
+}
+
+.command-block {
+    background-color: var(--light-bg);
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    font-family: monospace;
+    word-break: break-all;
+    font-size: 0.8rem;
+}
+
+.error-block {
+    color: var(--danger-color);
+    font-size: 0.9em;
+}
+
+/* ===== 页脚 ===== */
+.footer {
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.footer .text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* ===== 语言选择器 ===== */
+.language-selector {
+    margin-top: var(--spacing-sm);
+}
+
+.language-selector a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.language-selector a:hover {
+    color: var(--primary-color);
+}
+
+/* ===== 响应式设计 ===== */
+@media (max-width: 768px) {
+    .page-header {
+        padding: var(--spacing-lg) var(--spacing-sm);
+    }
+    
+    .page-header h1 {
+        font-size: 2rem;
+    }
+    
+    .container-main {
+        padding: var(--spacing-md);
+    }
+    
+    .form-container {
+        margin: var(--spacing-md);
+        padding: var(--spacing-lg);
+    }
+}
+
+@media (max-width: 576px) {
+    .page-header {
+        padding: var(--spacing-md) var(--spacing-sm);
+    }
+    
+    .page-header h1 {
+        font-size: 1.75rem;
+    }
+    
+    .page-header p {
+        font-size: 1rem;
+    }
+    
+    .feature-card .card-body {
+        padding: var(--spacing-md);
+    }
+    
+    .btn-lg {
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: 1rem;
+    }
+}
+
+/* ===== 动画效果 ===== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* ===== 加载动画 ===== */
+.spinner-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--spacing-lg);
+}
+
+/* ===== 工具类 ===== */
+.text-gradient {
+    background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.border-gradient {
+    border: 2px solid transparent;
+    background: linear-gradient(var(--white), var(--white)) padding-box,
+                linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%) border-box;
+}
