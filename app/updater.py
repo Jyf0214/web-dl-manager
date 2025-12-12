@@ -301,64 +301,130 @@ def update_page_library() -> dict:
 
 def restart_application():
     """
-    Checks for active downloads and restarts the application only when idle.
+    Restarts the application after update.
     Sends SIGHUP to PID 1 to allow the entrypoint script to handle the restart.
+    If SIGHUP fails, attempts alternative restart methods.
     """
     log("Preparing to restart application...")
     
-    idle_check_url = "http://127.0.0.1:6275/server-status/json"
-    max_retries = 5
-    retry_delay = 10 # seconds
-
-    for attempt in range(max_retries):
-        try:
-            # The /server-status/json endpoint requires authentication
-            # We can't provide credentials here, so we assume the script is running on the same host
-            # and can access the endpoint without auth. This is a limitation.
-            with httpx.Client() as client:
-                response = client.get(idle_check_url, timeout=10)
-                response.raise_for_status()
+    # Optionally check for active tasks but don't block restart
+    try:
+        with httpx.Client(timeout=5) as client:
+            response = client.get("http://127.0.0.1:6275/server-status/json")
+            if response.status_code == 200:
                 data = response.json()
                 active_tasks = data.get("application", {}).get("active_tasks", 0)
-                
-                if active_tasks == 0:
-                    log("No active tasks. Proceeding with restart.")
-                    os.kill(1, signal.SIGHUP)
-                    return # Exit after sending signal
-                else:
-                    log(f"There are {active_tasks} active tasks. Aborting restart.")
-                    log("Please wait for tasks to complete and restart manually.")
-                    return # Exit, do not proceed
-        except httpx.RequestError as e:
-            log(f"Could not connect to the application to check for active tasks (attempt {attempt + 1}/{max_retries}): {e}")
-            if attempt < max_retries - 1:
-                log(f"Retrying in {retry_delay} seconds...")
-                time.sleep(retry_delay)
-            else:
-                log("Could not connect to the application after multiple retries. Aborting restart.")
-                log("The application might be in a broken state. Please check the logs and restart manually.")
-                return # Exit, do not proceed
-        except Exception as e:
-            log(f"An unexpected error occurred during idle check: {e}")
-            log("Aborting restart due to an unexpected error.")
-            return # Exit, do not proceed
+                if active_tasks > 0:
+                    log(f"Warning: {active_tasks} active tasks will be interrupted by restart.")
+    except Exception as e:
+        log(f"Could not check active tasks: {e}. Proceeding with restart.")
+    
+    # Method 1: Send SIGHUP to PID 1 (works if entrypoint handles it)
+    try:
+        os.kill(1, signal.SIGHUP)
+        log("SIGHUP signal sent to PID 1. Application should restart shortly.")
+        return {"status": "success", "message": "Restart signal sent."}
+    except Exception as e:
+        log(f"SIGHUP failed: {e}. Trying alternative method...")
+    
+    # Method 2: Start a new process and exit current one
+    try:
+        log("Starting new application process...")
+        # Start the application in background using subprocess
+        subprocess.Popen(
+            [sys.executable, "-m", "app.main"],
+            cwd=BASE_DIR,
+            start_new_session=True
+        )
+        log("New application process started. Current process will exit.")
+        # Give time for new process to start
+        time.sleep(2)
+        # Exit current process
+        os._exit(0)
+    except Exception as e:
+        log(f"Alternative restart failed: {e}")
+        return {"status": "error", "message": f"Failed to restart: {e}"}
 
 
 def run_update():
     """Main function to run the update process."""
-    log("Starting update process via raw file download...")
+    log("Starting update process...")
     try:
-        log("Fetching latest version information from GitHub...")
-        new_sha = get_latest_commit_sha()
+        # Get current and latest version info
         old_sha = get_local_commit_sha()
-
-        log(f"Local version: {old_sha or 'N/A'}")
-        log(f"Remote version: {new_sha}")
-
+        log(f"Current local version: {old_sha or 'N/A'}")
+        
+        # Check if we're in a git repository
+        git_repo_path = BASE_DIR / ".git"
+        if git_repo_path.exists():
+            log("Git repository detected, using git pull for update...")
+            try:
+                # Get remote latest SHA first
+                new_sha = get_latest_commit_sha()
+                log(f"Latest remote version: {new_sha[:7]}")
+                
+                if new_sha == old_sha:
+                    log("Application is already up to date.")
+                    return {"status": "success", "message": "Already up to date.", "updated": False}
+                
+                # Perform git pull
+                result = subprocess.run(
+                    ["git", "pull", "origin", BRANCH],
+                    capture_output=True,
+                    text=True,
+                    cwd=BASE_DIR,
+                    timeout=300
+                )
+                
+                if result.returncode != 0:
+                    log(f"Git pull failed: {result.stderr}")
+                    raise Exception(f"Git pull failed: {result.stderr}")
+                
+                log("Git pull successful.")
+                
+                # Verify new SHA after pull
+                new_local_sha = subprocess.run(
+                    ["git", "rev-parse", "HEAD"],
+                    capture_output=True,
+                    text=True,
+                    cwd=BASE_DIR,
+                    check=True
+                ).stdout.strip()
+                
+                log(f"Updated to version: {new_local_sha[:7]}")
+                
+                # Update version info file
+                store_commit_sha(new_local_sha)
+                
+                # Update dependencies
+                log("Updating dependencies...")
+                subprocess.run([sys.executable, "-m", "pip", "install", "-r", str(REQUIREMENTS_FILE)], check=True)
+                log("Dependencies updated.")
+                
+                # Update changelog
+                log("Updating changelog...")
+                update_changelog(old_sha, new_local_sha)
+                
+                log(f"Successfully updated to version {new_local_sha[:7]} via git pull.")
+                return {"status": "success", "message": f"Update to version {new_local_sha[:7]} successful. Restarting...", "updated": True}
+                
+            except subprocess.TimeoutExpired:
+                log("Git pull timed out.")
+                raise Exception("Git pull timed out after 5 minutes.")
+            except Exception as git_error:
+                log(f"Git pull failed, falling back to raw file download: {git_error}")
+                # Fall through to raw file download
+                pass
+        
+        # Fallback to raw file download method
+        log("Using raw file download method for update...")
+        new_sha = get_latest_commit_sha()
+        log(f"Latest remote version: {new_sha[:7]}")
+        
         if new_sha == old_sha:
             log("Application is already up to date.")
-            return {"status": "success", "message": "Already up to date."}
-
+            return {"status": "success", "message": "Already up to date.", "updated": False}
+        
         log("New version available. Fetching file tree...")
         file_tree = get_file_tree(new_sha)
 
@@ -396,7 +462,7 @@ def run_update():
         store_commit_sha(new_sha)
         log(f"Successfully updated to version {new_sha[:7]}.")
 
-        return {"status": "success", "message": f"Update to version {new_sha[:7]} successful. Restarting..."}
+        return {"status": "success", "message": f"Update to version {new_sha[:7]} successful. Restarting...", "updated": True}
 
     except httpx.HTTPStatusError as e:
         log(f"HTTP error occurred: {e.response.status_code} - {e.response.text}")
