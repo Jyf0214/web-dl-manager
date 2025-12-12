@@ -36,6 +36,19 @@ if [ -n "$TUNNEL_TOKEN" ]; then
     cloudflared tunnel --no-autoupdate run --token "$TUNNEL_TOKEN" > /dev/null 2>&1 &
 fi
 
+# --- Application Code Update ---
+if [ -d "/app/.git" ]; then
+    echo "Checking for application updates via git pull..."
+    cd /app
+    git pull --quiet 2>/dev/null || echo "Warning: git pull failed, continuing with existing code."
+    # Update version info file after successful pull
+    if git rev-parse HEAD > /app/.version_info 2>/dev/null; then
+        echo "Version info updated to $(cat /app/.version_info | cut -c 1-7)"
+    fi
+else
+    echo "Warning: /app is not a git repository, skipping code update."
+fi
+
 # --- Start the main application ---
 # The python script now handles both the camouflage and main app servers.
 echo "Starting application..."

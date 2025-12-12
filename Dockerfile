@@ -26,8 +26,16 @@ WORKDIR /app
 # Create necessary directories and set permissions
 RUN mkdir -p /app/app /data/downloads /data/archives /data/status && chown -R 1000:1000 /app /data
 
-# Copy all application files
-COPY --chown=1000:1000 . /app
+# Configure git to clone the repository
+ARG REPO_URL=https://github.com/Jyf0214/web-dl-manager.git
+ARG REPO_BRANCH=main
+RUN git clone --depth 1 --branch ${REPO_BRANCH} ${REPO_URL} /app_tmp && \
+    mv /app_tmp/* /app/ && \
+    rm -rf /app_tmp && \
+    # Initialize version info file from git SHA
+    cd /app && git rev-parse HEAD > /app/.version_info && \
+    # Set permissions
+    chown -R 1000:1000 /app /data
 
 # Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh

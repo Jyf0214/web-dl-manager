@@ -40,6 +40,22 @@ def get_latest_commit_sha() -> str:
 
 def get_local_commit_sha() -> str | None:
     """Reads the currently installed commit SHA from the version info file."""
+    # First try to get from git
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+            cwd=BASE_DIR
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except Exception:
+        pass
+    
+    # Fall back to version info file
     if not VERSION_INFO_FILE.exists():
         return None
     return VERSION_INFO_FILE.read_text().strip()
