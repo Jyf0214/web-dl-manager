@@ -1,0 +1,7 @@
+2025-12-13 02:33:45,541 - app.database - INFO - Database scheme is not sqlite, falling back to SQLite database: /root/web-dl-manager/webdl-manager.db
+2025-12-13 02:33:45,640 - app.database - INFO - Table 'users' checked/created.
+2025-12-13 02:33:45,658 - app.database - INFO - Table 'config' checked/created.
+2025-12-13 02:33:45,673 - app.database - INFO - Table 'logs' checked/created.
+2025-12-13 02:33:46,861 - app.database - INFO - Table 'users' checked/created.
+2025-12-13 02:33:46,863 - app.database - INFO - Table 'config' checked/created.
+2025-12-13 02:33:46,866 - app.database - INFO - Table 'logs' checked/created.

@@ -1,0 +1,67 @@
+2025-12-13 02:47:22,944 - app.database - INFO - Database scheme is not sqlite, falling back to SQLite database: /root/web-dl-manager/webdl-manager.db
+2025-12-13 02:47:22,955 - app.database - INFO - Table 'users' checked/created.
+2025-12-13 02:47:22,958 - app.database - INFO - Table 'config' checked/created.
+2025-12-13 02:47:22,960 - app.database - INFO - Table 'logs' checked/created.
+--- RUNNING IN FOREGROUND DEBUG MODE ---
+Starting services...
+Page service started on http://0.0.0.0:5492
+Main API service started on http://127.0.0.1:6275
+2025-12-13 02:47:24,078 - uvicorn.error - INFO - Started server process [8312]
+2025-12-13 02:47:24,080 - uvicorn.error - INFO - Started server process [8312]
+2025-12-13 02:47:24,082 - uvicorn.error - INFO - Waiting for application startup.
+2025-12-13 02:47:24,081 - uvicorn.error - INFO - Waiting for application startup.
+2025-12-13 02:47:24,090 - app.database - INFO - Table 'users' checked/created.
+2025-12-13 02:47:24,090 - app.database - INFO - Table 'users' checked/created.
+2025-12-13 02:47:24,092 - uvicorn.error - INFO - Application startup complete.
+2025-12-13 02:47:24,099 - app.database - INFO - Table 'config' checked/created.
+2025-12-13 02:47:24,099 - app.database - INFO - Table 'config' checked/created.
+2025-12-13 02:47:24,102 - uvicorn.error - INFO - Uvicorn running on http://0.0.0.0:5492 (Press CTRL+C to quit)
+2025-12-13 02:47:24,104 - app.database - INFO - Table 'logs' checked/created.
+2025-12-13 02:47:24,104 - app.database - INFO - Table 'logs' checked/created.
+2025-12-13 02:47:24,107 - app.utils - INFO - Attempting to restore gallery-dl config from rclone remote...
+2025-12-13 02:47:24,107 - app.utils - INFO - Configuration restore not configured. Skipping.
+2025-12-13 02:47:24,109 - root - INFO - Database logging configured with DEBUG level.
+2025-12-13 02:47:24,117 - root - INFO - File logging configured for startup logs.
+2025-12-13 02:47:24,163 - uvicorn.error - INFO - Application startup complete.
+2025-12-13 02:47:24,172 - uvicorn.error - INFO - Uvicorn running on http://127.0.0.1:6275 (Press CTRL+C to quit)
+2025-12-13 02:47:29,270 - uvicorn.access - INFO - 127.0.0.1:39178 - "GET /api/version HTTP/1.1" 200
+2025-12-13 02:47:38,045 - uvicorn.access - INFO - 127.0.0.1:49060 - "GET /setup HTTP/1.1" 302
+2025-12-13 02:47:38,103 - uvicorn.access - INFO - 127.0.0.1:49060 - "GET /login HTTP/1.1" 200
+[Updater] Checking for updates...
+2025-12-13 02:47:47,394 - httpcore.connection - DEBUG - connect_tcp.started host='api.github.com' port=443 local_address=None timeout=5.0 socket_options=None
+2025-12-13 02:47:47,566 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7761056a50>
+2025-12-13 02:47:47,578 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7761020550> server_hostname='api.github.com' timeout=5.0
+2025-12-13 02:47:48,093 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7760fe3750>
+2025-12-13 02:47:48,108 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'GET']>
+2025-12-13 02:47:48,115 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-12-13 02:47:48,122 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'GET']>
+2025-12-13 02:47:48,127 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-12-13 02:47:48,132 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'GET']>
+2025-12-13 02:47:48,486 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Sat, 13 Dec 2025 02:47:51 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Cache-Control', b'public, max-age=60, s-maxage=60'), (b'Vary', b'Accept,Accept-Encoding, Accept, X-Requested-With'), (b'ETag', b'W/"9be5a50af3e83b5d6e65aeb4c2b8c73e57d705e5de7f613865210ccfc4b2ce2e"'), (b'Last-Modified', b'Fri, 12 Dec 2025 23:09:49 GMT'), (b'X-GitHub-Media-Type', b'github.v3; format=json'), (b'x-github-api-version-selected', b'2022-11-28'), (b'Access-Control-Expose-Headers', b'ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset'), (b'Access-Control-Allow-Origin', b'*'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubdomains; preload'), (b'X-Frame-Options', b'deny'), (b'X-Content-Type-Options', b'nosniff'), (b'X-XSS-Protection', b'0'), (b'Referrer-Policy', b'origin-when-cross-origin, strict-origin-when-cross-origin'), (b'Content-Security-Policy', b"default-src 'none'"), (b'Content-Encoding', b'gzip'), (b'Server', b'github.com'), (b'Accept-Ranges', b'bytes'), (b'X-RateLimit-Limit', b'60'), (b'X-RateLimit-Remaining', b'51'), (b'X-RateLimit-Reset', b'1765597100'), (b'X-RateLimit-Resource', b'core'), (b'X-RateLimit-Used', b'9'), (b'Transfer-Encoding', b'chunked'), (b'X-GitHub-Request-Id', b'124A:37B172:CF3E7:FF7DB:693CD3D7')])
+2025-12-13 02:47:48,492 - httpx - INFO - HTTP Request: GET https://api.github.com/repos/Jyf0214/web-dl-manager/commits/main "HTTP/1.1 200 OK"
+2025-12-13 02:47:48,499 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'GET']>
+2025-12-13 02:47:48,507 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-12-13 02:47:48,511 - httpcore.http11 - DEBUG - response_closed.started
+2025-12-13 02:47:48,516 - httpcore.http11 - DEBUG - response_closed.complete
+2025-12-13 02:47:48,522 - httpcore.connection - DEBUG - close.started
+2025-12-13 02:47:48,528 - httpcore.connection - DEBUG - close.complete
+2025-12-13 02:47:48,631 - httpcore.connection - DEBUG - connect_tcp.started host='api.github.com' port=443 local_address=None timeout=5.0 socket_options=None
+2025-12-13 02:47:49,816 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x77606dcf50>
+2025-12-13 02:47:49,820 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x77606cccd0> server_hostname='api.github.com' timeout=5.0
+2025-12-13 02:47:50,151 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7761042c40>
+2025-12-13 02:47:50,160 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'GET']>
+2025-12-13 02:47:50,169 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-12-13 02:47:50,175 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'GET']>
+2025-12-13 02:47:50,193 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-12-13 02:47:50,200 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'GET']>
+2025-12-13 02:47:50,533 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 404, b'Not Found', [(b'Date', b'Sat, 13 Dec 2025 02:47:53 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'X-GitHub-Media-Type', b'github.v3; format=json'), (b'x-github-api-version-selected', b'2022-11-28'), (b'Access-Control-Expose-Headers', b'ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset'), (b'Access-Control-Allow-Origin', b'*'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubdomains; preload'), (b'X-Frame-Options', b'deny'), (b'X-Content-Type-Options', b'nosniff'), (b'X-XSS-Protection', b'0'), (b'Referrer-Policy', b'origin-when-cross-origin, strict-origin-when-cross-origin'), (b'Content-Security-Policy', b"default-src 'none'"), (b'Vary', b'Accept-Encoding, Accept, X-Requested-With'), (b'Content-Encoding', b'gzip'), (b'Server', b'github.com'), (b'X-RateLimit-Limit', b'60'), (b'X-RateLimit-Remaining', b'50'), (b'X-RateLimit-Reset', b'1765597100'), (b'X-RateLimit-Resource', b'core'), (b'X-RateLimit-Used', b'10'), (b'Content-Length', b'123'), (b'X-GitHub-Request-Id', b'124F:1D6691:CDD71:FE2CE:693CD3D9')])
+2025-12-13 02:47:50,540 - httpx - INFO - HTTP Request: GET https://api.github.com/repos/Jyf0214/web-dl-manager/compare/e534d5d2f7220751106ea40357d45b88a3f16d0c...ace38a7d08b5a949acb93d5d4af36a71b486fd04 "HTTP/1.1 404 Not Found"
+2025-12-13 02:47:50,547 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'GET']>
+2025-12-13 02:47:50,552 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-12-13 02:47:50,561 - httpcore.http11 - DEBUG - response_closed.started
+2025-12-13 02:47:50,571 - httpcore.http11 - DEBUG - response_closed.complete
+2025-12-13 02:47:50,576 - httpcore.connection - DEBUG - close.started
+2025-12-13 02:47:50,589 - httpcore.connection - DEBUG - close.complete
+2025-12-13 02:47:50,595 - uvicorn.access - INFO - 127.0.0.1:39244 - "GET /api/updates/check HTTP/1.1" 200
+2025-12-13 02:48:04,278 - uvicorn.access - INFO - 127.0.0.1:39294 - "GET /downloader HTTP/1.1" 200
+2025-12-13 02:50:10,972 - uvicorn.access - INFO - 127.0.0.1:49500 - "GET / HTTP/1.1" 200

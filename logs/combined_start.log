@@ -1,0 +1,26 @@
+2025-12-13 02:52:46,380 - app.database - INFO - Database scheme is not sqlite, falling back to SQLite database: /root/web-dl-manager/webdl-manager.db
+2025-12-13 02:52:46,389 - app.database - INFO - Table 'users' checked/created.
+2025-12-13 02:52:46,392 - app.database - INFO - Table 'config' checked/created.
+2025-12-13 02:52:46,395 - app.database - INFO - Table 'logs' checked/created.
+--- RUNNING IN FOREGROUND DEBUG MODE ---
+Starting services...
+Page service started on http://0.0.0.0:5492
+Main API service started on http://127.0.0.1:6275
+2025-12-13 02:52:47,862 - uvicorn.error - INFO - Started server process [10997]
+2025-12-13 02:52:47,869 - uvicorn.error - INFO - Waiting for application startup.
+2025-12-13 02:52:47,867 - uvicorn.error - INFO - Started server process [10997]
+2025-12-13 02:52:47,872 - uvicorn.error - INFO - Waiting for application startup.
+2025-12-13 02:52:47,875 - uvicorn.error - INFO - Application startup complete.
+2025-12-13 02:52:47,881 - uvicorn.error - INFO - Uvicorn running on http://0.0.0.0:5492 (Press CTRL+C to quit)
+2025-12-13 02:52:47,885 - app.database - INFO - Table 'users' checked/created.
+2025-12-13 02:52:47,885 - app.database - INFO - Table 'users' checked/created.
+2025-12-13 02:52:47,887 - app.database - INFO - Table 'config' checked/created.
+2025-12-13 02:52:47,887 - app.database - INFO - Table 'config' checked/created.
+2025-12-13 02:52:47,894 - app.database - INFO - Table 'logs' checked/created.
+2025-12-13 02:52:47,894 - app.database - INFO - Table 'logs' checked/created.
+2025-12-13 02:52:47,896 - app.utils - INFO - Attempting to restore gallery-dl config from rclone remote...
+2025-12-13 02:52:47,897 - app.utils - INFO - Configuration restore not configured. Skipping.
+2025-12-13 02:52:47,900 - root - INFO - Database logging configured with DEBUG level.
+2025-12-13 02:52:47,913 - root - INFO - File logging configured for startup logs.
+2025-12-13 02:52:47,920 - uvicorn.error - INFO - Application startup complete.
+2025-12-13 02:52:47,932 - uvicorn.error - INFO - Uvicorn running on http://127.0.0.1:6275 (Press CTRL+C to quit)

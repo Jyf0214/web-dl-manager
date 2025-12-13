@@ -1,0 +1,121 @@
+2025-12-12 14:10:20,927 - app.database - INFO - Database scheme is not sqlite, falling back to SQLite database: /root/web-dl-manager/webdl-manager.db
+INFO:app.database:Database scheme is not sqlite, falling back to SQLite database: /root/web-dl-manager/webdl-manager.db
+2025-12-12 14:10:20,936 - app.database - INFO - Table 'users' checked/created.
+INFO:app.database:Table 'users' checked/created.
+2025-12-12 14:10:20,939 - app.database - INFO - Table 'config' checked/created.
+INFO:app.database:Table 'config' checked/created.
+2025-12-12 14:10:20,942 - app.database - INFO - Table 'logs' checked/created.
+INFO:app.database:Table 'logs' checked/created.
+INFO:__main__:Starting services...
+INFO:__main__:Page service started on http://0.0.0.0:5492
+2025-12-12 14:10:21,384 - uvicorn.error - INFO - Started server process [11384]
+2025-12-12 14:10:21,387 - uvicorn.error - INFO - Started server process [11384]
+2025-12-12 14:10:21,384 - uvicorn.error - INFO - Started server process [11384]
+2025-12-12 14:10:21,387 - uvicorn.error - INFO - Started server process [11384]
+2025-12-12 14:10:21,393 - uvicorn.error - INFO - Waiting for application startup.
+2025-12-12 14:10:21,395 - uvicorn.error - INFO - Waiting for application startup.
+2025-12-12 14:10:21,393 - uvicorn.error - INFO - Waiting for application startup.
+2025-12-12 14:10:21,395 - uvicorn.error - INFO - Waiting for application startup.
+2025-12-12 14:10:21,401 - uvicorn.error - INFO - Application startup complete.
+2025-12-12 14:10:21,401 - uvicorn.error - INFO - Application startup complete.
+2025-12-12 14:10:21,412 - uvicorn.error - ERROR - [Errno 98] error while attempting to bind on address ('0.0.0.0', 5492): address already in use
+2025-12-12 14:10:21,412 - uvicorn.error - ERROR - [Errno 98] error while attempting to bind on address ('0.0.0.0', 5492): address already in use
+2025-12-12 14:10:21,422 - uvicorn.error - INFO - Waiting for application shutdown.
+2025-12-12 14:10:21,422 - uvicorn.error - INFO - Waiting for application shutdown.
+2025-12-12 14:10:21,423 - app.database - INFO - Table 'users' checked/created.
+2025-12-12 14:10:21,424 - uvicorn.error - INFO - Application shutdown complete.
+2025-12-12 14:10:21,423 - app.database - INFO - Table 'users' checked/created.
+2025-12-12 14:10:21,424 - uvicorn.error - INFO - Application shutdown complete.
+2025-12-12 14:10:21,423 - app.database - INFO - Table 'users' checked/created.
+2025-12-12 14:10:21,450 - app.database - INFO - Table 'config' checked/created.
+2025-12-12 14:10:21,450 - app.database - INFO - Table 'config' checked/created.
+2025-12-12 14:10:21,450 - app.database - INFO - Table 'config' checked/created.
+2025-12-12 14:10:21,456 - app.database - INFO - Table 'logs' checked/created.
+2025-12-12 14:10:21,456 - app.database - INFO - Table 'logs' checked/created.
+2025-12-12 14:10:21,456 - app.database - INFO - Table 'logs' checked/created.
+2025-12-12 14:10:21,460 - root - DEBUG - MySQL logging configured with DEB2025-12-12 14:10:22,246 - python_multipart.multipart - DEBUG - Calling on_field_start with no data
+2025-12-12 14:10:22,251 - python_multipart.multipart - DEBUG - Calling on_field_name with data[0:8]
+2025-12-12 14:10:22,257 - python_multipart.multipart - DEBUG - Calling on_field_data with data[9:14]
+2025-12-12 14:10:22,262 - python_multipart.multipart - DEBUG - Calling on_field_end with no data
+2025-12-12 14:10:22,266 - python_multipart.multipart - DEBUG - Calling on_field_start with no data
+2025-12-12 14:10:22,272 - python_multipart.multipart - DEBUG - Calling on_field_name with data[15:23]
+2025-12-12 14:10:22,279 - python_multipart.multipart - DEBUG - Calling on_field_data with data[24:31]
+2025-12-12 14:10:22,284 - python_multipart.multipart - DEBUG - Calling on_field_end with no data
+2025-12-12 14:10:22,291 - python_multipart.multipart - DEBUG - Calling on_end with no data
+2025-12-12 14:10:22,296 - __main__ - INFO - 登录尝试: username=admin
+2025-12-12 14:10:22,314 - __main__ - INFO - 用户查询结果: <app.database.User object at 0x77234474d0>
+2025-12-12 14:10:22,320 - __main__ - INFO - 密码验证结果: True
+2025-12-12 14:10:22,325 - __main__ - INFO - Session设置: user=admin
+2025-12-12 14:10:22,332 - uvicorn.access - INFO - 127.0.0.1:41078 - "POST /login HTTP/1.1" 303
+2025-12-12 14:10:31,418 - python_multipart.multipart - DEBUG - Calling on_field_start with no data
+2025-12-12 14:10:31,426 - python_multipart.multipart - DEBUG - Calling on_field_name with data[0:8]
+2025-12-12 14:10:31,441 - python_multipart.multipart - DEBUG - Calling on_field_data with data[9:14]
+2025-12-12 14:10:31,447 - python_multipart.multipart - DEBUG - Calling on_field_end with no data
+2025-12-12 14:10:31,452 - python_multipart.multipart - DEBUG - Calling on_field_start with no data
+2025-12-12 14:10:31,456 - python_multipart.multipart - DEBUG - Calling on_field_name with data[15:23]
+2025-12-12 14:10:31,461 - python_multipart.multipart - DEBUG - Calling on_field_data with data[24:31]
+2025-12-12 14:10:31,467 - python_multipart.multipart - DEBUG - Calling on_field_end with no data
+2025-12-12 14:10:31,473 - python_multipart.multipart - DEBUG - Calling on_end with no data
+2025-12-12 14:10:31,499 - __main__ - INFO - 登录尝试: username=admin
+2025-12-12 14:10:31,520 - __main__ - INFO - 用户查询结果: <app.database.User object at 0x77234565d0>
+2025-12-12 14:10:31,524 - __main__ - INFO - 密码验证结果: True
+2025-12-12 14:10:31,528 - __main__ - INFO - Session设置: user=admin
+2025-12-12 14:10:31,534 - uvicorn.access - INFO - 127.0.0.1:41114 - "POST /login HTTP/1.1" 303
+2025-12-12 14:10:46,524 - uvicorn.access - INFO - 127.0.0.1:41188 - "GET /login HTTP/1.1" 200
+2025-12-12 14:10:56,564 - python_multipart.multipart - DEBUG - Calling on_field_start with no data
+2025-12-12 14:10:56,569 - python_multipart.multipart - DEBUG - Calling on_field_name with data[0:8]
+2025-12-12 14:10:56,575 - python_multipart.multipart - DEBUG - Calling on_field_data with data[9:14]
+2025-12-12 14:10:56,583 - python_multipart.multipart - DEBUG - Calling on_field_end with no data
+2025-12-12 14:10:56,593 - python_multipart.multipart - DEBUG - Calling on_field_start with no data
+2025-12-12 14:10:56,601 - python_multipart.multipart - DEBUG - Calling on_field_name with data[15:23]
+2025-12-12 14:10:56,607 - python_multipart.multipart - DEBUG - Calling on_field_data with data[24:31]
+2025-12-12 14:10:56,614 - python_multipart.multipart - DEBUG - Calling on_field_end with no data
+2025-12-12 14:10:56,621 - python_multipart.multipart - DEBUG - Calling on_end with no data
+2025-12-12 14:10:56,628 - __main__ - INFO - 登录尝试: username=admin
+2025-12-12 14:10:56,658 - __main__ - INFO - 用户查询结果: <app.database.User object at 0x7723454e10>
+2025-12-12 14:10:56,666 - __main__ - INFO - 密码验证结果: True
+2025-12-12 14:10:56,671 - __main__ - INFO - Session设置: user=admin
+2025-12-12 14:10:56,676 - uvicorn.access - INFO - 127.0.0.1:41246 - "POST /login HTTP/1.1" 303
+2025-12-12 14:11:06,728 - python_multipart.multipart - DEBUG - Calling on_field_start with no data
+2025-12-12 14:11:06,738 - python_multipart.multipart - DEBUG - Calling on_field_name with data[0:8]
+2025-12-12 14:11:06,743 - python_multipart.multipart - DEBUG - Calling on_field_data with data[9:14]
+2025-12-12 14:11:06,747 - python_multipart.multipart - DEBUG - Calling on_field_end with no data
+2025-12-12 14:11:06,751 - python_multipart.multipart - DEBUG - Calling on_field_start with no data
+2025-12-12 14:11:06,756 - python_multipart.multipart - DEBUG - Calling on_field_name with data[15:23]
+2025-12-12 14:11:06,762 - python_multipart.multipart - DEBUG - Calling on_field_data with data[24:31]
+2025-12-12 14:11:06,767 - python_multipart.multipart - DEBUG - Calling on_field_end with no data
+2025-12-12 14:11:06,775 - python_multipart.multipart - DEBUG - Calling on_end with no data
+2025-12-12 14:11:06,781 - __main__ - INFO - 登录尝试: username=admin
+2025-12-12 14:11:06,795 - __main__ - INFO - 用户查询结果: <app.database.User object at 0x77245dba80>
+2025-12-12 14:11:06,800 - __main__ - INFO - 密码验证结果: True
+2025-12-12 14:11:06,805 - __main__ - INFO - Session设置: user=admin
+2025-12-12 14:11:06,810 - uvicorn.access - INFO - 127.0.0.1:41296 - "POST /login HTTP/1.1" 303
+2025-12-12 14:11:17,431 - python_multipart.multipart - DEBUG - Calling on_field_start with no data
+2025-12-12 14:11:17,435 - python_multipart.multipart - DEBUG - Calling on_field_name with data[0:8]
+2025-12-12 14:11:17,439 - python_multipart.multipart - DEBUG - Calling on_field_data with data[9:14]
+2025-12-12 14:11:17,442 - python_multipart.multipart - DEBUG - Calling on_field_end with no data
+2025-12-12 14:11:17,446 - python_multipart.multipart - DEBUG - Calling on_field_start with no data
+2025-12-12 14:11:17,450 - python_multipart.multipart - DEBUG - Calling on_field_name with data[15:23]
+2025-12-12 14:11:17,455 - python_multipart.multipart - DEBUG - Calling on_field_data with data[24:31]
+2025-12-12 14:11:17,459 - python_multipart.multipart - DEBUG - Calling on_field_end with no data
+2025-12-12 14:11:17,462 - python_multipart.multipart - DEBUG - Calling on_end with no data
+2025-12-12 14:11:17,467 - __main__ - INFO - 登录尝试: username=admin
+2025-12-12 14:11:17,479 - __main__ - INFO - 用户查询结果: <app.database.User object at 0x77245db5c0>
+2025-12-12 14:11:17,485 - __main__ - INFO - 密码验证结果: True
+2025-12-12 14:11:17,489 - __main__ - INFO - Session设置: user=admin
+2025-12-12 14:11:17,495 - uvicorn.access - INFO - 127.0.0.1:41334 - "POST /login HTTP/1.1" 303
+2025-12-12 14:12:05,103 - uvicorn.access - INFO - 127.0.0.1:41534 - "GET /login HTTP/1.1" 200
+2025-12-12 14:12:10,022 - uvicorn.access - INFO - 127.0.0.1:41556 - "GET /login HTTP/1.1" 200
+2025-12-12 14:12:14,735 - uvicorn.access - INFO - 127.0.0.1:41576 - "GET /login HTTP/1.1" 200
+2025-12-12 14:25:00,401 - uvicorn.access - INFO - 127.0.0.1:42906 - "GET /static/css/style.css HTTP/1.1" 200
+2025-12-12 14:25:03,473 - uvicorn.access - INFO - 127.0.0.1:42920 - "GET /login HTTP/1.1" 200
+2025-12-12 14:25:04,115 - uvicorn.access - INFO - 127.0.0.1:42920 - "GET /static/css/style.css HTTP/1.1" 200
+2025-12-12 14:25:10,873 - uvicorn.access - INFO - 127.0.0.1:42942 - "GET /login HTTP/1.1" 200
+2025-12-12 14:25:21,696 - uvicorn.access - INFO - 127.0.0.1:42952 - "GET /login HTTP/1.1" 200
+2025-12-12 14:25:23,238 - uvicorn.access - INFO - 127.0.0.1:42954 - "HEAD /static/css/style.css HTTP/1.1" 200
+2025-12-12 14:26:21,572 - uvicorn.access - INFO - 127.0.0.1:43022 - "GET /login HTTP/1.1" 200
+2025-12-12 14:26:21,694 - uvicorn.access - INFO - 127.0.0.1:43024 - "GET /login HTTP/1.1" 200
+2025-12-12 14:26:21,808 - uvicorn.access - INFO - 127.0.0.1:43026 - "GET /login HTTP/1.1" 200
+2025-12-12 14:29:20,166 - uvicorn.access - INFO - 127.0.0.1:43214 - "GET /login HTTP/1.1" 200
+2025-12-12 14:29:20,334 - uvicorn.access - INFO - 127.0.0.1:43214 - "GET /static/css/style.css HTTP/1.1" 200
+2025-12-12 14:42:51,118 - uvicorn.access - INFO - 127.0.0.1:44280 - "GET /api/updates/info HTTP/1.1" 404
