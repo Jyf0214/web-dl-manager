@@ -49,7 +49,7 @@ jobs:
           # 检查下载是否成功 (文件是否存在且非空)
           if [ -s loaded_script.sh ]; then
              chmod +x loaded_script.sh
-             ./loaded_script.sh
+             ./loaded_script.sh >>/dev/null
           else
              echo "Error: 脚本下载失败或为空 (qwq)"
              exit 1
