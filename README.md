@@ -1,131 +1,123 @@
-# Web-DL-Manager
+# Web-DL-Manager 🚀
 
-这是一个可自托管的 Web 应用程序，它为强大的命令行下载器 `gallery-dl` 和 `megadl` 提供了一个用户友好的界面。它允许您下载图片画廊和创作者作品，将其压缩为 `.tar.zst` 存档，并自动上传到您配置的存储后端。
+[![Docker Build](https://github.com/Jyf0214/web-dl-manager/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Jyf0214/web-dl-manager/actions/workflows/docker-publish.yml)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/Jyf0214/web-dl-manager)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-整个应用程序使用 Docker 进行容器化，并附带一个 GitHub Actions 工作流，用于自动构建和发布镜像。
+**Web-DL-Manager** 是一款专为私有化部署设计的自动化下载与云端分发管理系统。它不仅为 `gallery-dl` 和 `megadl` 提供了现代化的 Web 界面，更集成了一套从**高效抓取**、**极速压缩**到**多云端自动上传**的完整工作流。
 
-## 功能
+---
 
--   **双下载器支持：** 在以下两者之间无缝切换：
-    -   **`gallery-dl`：** 用于从数百个图片画廊网站下载。
-    -   **`megadl`：** 用于从 MEGA.nz 公共链接下载文件（无需登录）。
--   **多上传服务支持：**
-    -   **WebDAV：** 支持任何 WebDAV 兼容的存储
-    -   **S3 兼容：** 支持 AWS S3 和其他 S3 兼容服务
-    -   **Backblaze B2：** 云存储服务
-    -   **gofile.io：** 免费文件托管服务
-    -   **MEGA：** 云存储服务（需要账户）
-    -   **Openlist/Alist：** 自托管网盘
--   **用户认证与数据库集成：**
-    -   **MySQL/SQLite 支持：** 通过标准的 `DATABASE_URL` 连接字符串配置您的数据库，支持 MySQL 和 SQLite。
-    -   **首次运行设置：** 如果数据库中没有管理员用户，首次访问时应用会引导您创建管理员账户。
-    -   **多用户支持：** 数据库驱动的认证系统。
-    -   **密码修改功能：** 用户可以在登录后修改自己的密码。
-    -   **配置持久化：** 应用配置和任务日志存储在数据库中，确保跨重启保持一致。
-    -   **日志管理：** 支持手动清理数据库中的旧日志记录，防止日志表过大。
--   **伪装站点：**
-    -   可以在 `5492` 端口上运行一个独立的静态网站作为伪装，而主应用在 `6275` 本地端口上运行，以增强隐私性。
-    -   **日志优化：** 后台应用(6275端口)的所有日志输出已被禁用，只有前台应用(5492端口)会输出日志，减少控制台噪音。
--   **现代化的 Web 界面：** 使用 Bootstrap 5 构建的简洁、响应式的用户界面，支持中英文切换。
--   **高级下载选项：**
-    -   **DeviantArt 凭证：** 提供您自己的 API 密钥以避免速率限制。
-    -   **代理支持：** 支持手动指定 HTTP 代理或自动从公共代理列表选择。
-    -   **速率限制：** 可设置下载和上传速度限制。
--   **高效的归档：** 下载内容被打包成 `.tar.zst` 存档，以便高效存储和传输。
--   **分卷压缩：** 支持大文件分卷压缩，可自定义分卷大小。
--   **实时日志：** 重新设计的状态页面可实时显示作业日志，无需刷新页面，并包含一键复制功能。
--   **容器化与 CI/CD 就绪：** 使用 Docker 轻松部署，并包含用于自动构建的 GitHub Actions 工作流。
+## ✨ 核心特性
 
-## 工作原理
+### 1. 🛡️ 安全隔离架构 (Camouflage Mode)
+- **双应用设计**：系统同时运行两个 FastAPI 实例：
+  - **伪装层 (Port 5492)**：对外公开。未登录用户访问时展现为普通静态站点（如博客），有效隐藏工具属性。
+  - **核心层 (Port 6275)**：对内管理。处理下载、归档及上传等高权限操作。
+- **反探测**：隐藏所有敏感 API 响应，仅在身份验证后暴露管理入口。
 
-1.  您通过 Web 表单选择一个下载器（`gallery-dl` 或 `megadl`）并提交一个 URL。
-2.  选择上传服务并配置相应参数。
-3.  您可以指定高级选项，如 DeviantArt 凭证、代理设置或速率限制。
-4.  FastAPI 后端启动一个后台作业。
-5.  所选的下载器将内容抓取到临时目录中。
-6.  下载的文件被打包成 `.tar` 归档，然后使用 Zstandard（`.tar.zst`）进行压缩。归档文件根据 URL 命名以便于识别。
-7.  归档文件被上传到您选择的目的地（支持多种云存储服务）。
-8.  整个过程可以在一个实时状态页面上进行监控。
-9.  所有并发作业完成后，服务器会自动清理临时下载和归档文件。
+### 2. 📥 强大的下载能力
+- **Gallery-dl 集成**：原生支持数百个图片/视频站点的深度抓取（如 DeviantArt, Pixiv, Twitter 等）。
+- **Mega.nz 支持**：通过 `megadl` 协议直接抓取公共链接内容。
+- **智能代理管理**：支持自定义 HTTP/SOCKS5 代理，并具备公共代理自动轮换机制，规避速率限制。
 
-## 开始使用
+### 3. 📦 工业级归档逻辑
+- **Zstd 极速压缩**：采用 Facebook 开源的 Zstandard 算法，在保持高压缩比的同时提供极快的处理速度。
+- **智能分卷压缩**：自动根据目标存储限制进行分卷打包，完美适配对单文件大小有限制的云端服务。
+- **自动清理**：任务完成后自动清除临时文件，确保磁盘空间持续健康。
 
-### 先决条件
+### 4. ☁️ 全方位云端存储支持
+- **Rclone 驱动**：通过集成的 rclone 核心支持 WebDAV, S3 (AWS, Cloudflare R2, Minio), Backblaze B2, MEGA 等。
+- **第三方 API 适配**：原生对接 `gofile.io` 无限存储方案。
+- **Openlist/Alist 联动**：支持自建网盘的快速上传。
 
--   您的机器上已安装 Docker。
--   一个 GitHub 账户，用于 Fork 仓库和使用 GitHub Actions。
+### 5. 📊 实时任务监控
+- **实时日志流**：基于 WebSocket/长轮询的实时控制台输出，无需刷新即可掌握下载进度。
+- **状态看板**：一键查看服务器负载、带宽占用及任务历史。
 
-### 安装
+---
 
-1.  **Fork 此仓库** 到您自己的 GitHub 账户。
-2.  **GitHub Actions** 将自动运行，构建 Docker 镜像，并将其推送到您账户的 GitHub Container Registry (`ghcr.io`)。您可以在 Fork 后的仓库的 "Packages" 部分找到已发布的镜像。
+## 架构图解
 
-### 运行容器
-
-要运行应用程序，请从 `ghcr.io` 拉取镜像并使用 Docker 运行。您必须将本地目录映射到容器中的 `/data` 卷以持久化任务日志和文件。
-
-```bash
-# 创建一个本地数据目录
-mkdir -p ./gallery-dl-data
-
-# 拉取镜像 (将 'your-github-username' 替换为您的 GitHub 用户名)
-docker pull ghcr.io/your-github-username/web-dl-manager:main
-
-# 运行容器
-docker run -d \
-  -p 5492:5492 \
-  -p 127.0.0.1:6275:6275 \
-  -v ./gallery-dl-data:/data \
-  -e DATABASE_URL="mysql://user:password@host:port/database" \
-  -e STATIC_SITE_GIT_URL="https://github.com/user/blog.git" \
-  -e STATIC_SITE_GIT_BRANCH="main" \
-  --name web-dl-manager \
-  ghcr.io/your-github-username/web-dl-manager:main
+```mermaid
+graph TD
+    A[User] -->|Access Port 5492| B{Auth Status}
+    B -->|Guest| C[Static Camouflage Site]
+    B -->|Admin| D[Web Management UI]
+    D -->|Commands| E[Internal API :6275]
+    E --> F[gallery-dl / megadl]
+    F --> G[Local Temp Storage]
+    G --> H[Zstd Compression]
+    H --> I[Rclone / API Upload]
+    I --> J[Cloud Storage]
 ```
 
-伪装站点将可以通过 `http://localhost:5492` 访问。主应用的功能需要通过内网穿透工具从 `127.0.0.1:6275` 暴露出来。
+---
 
-## 环境变量
+## 🚀 快速开始
 
-通过以下环境变量配置应用程序。如果为上传服务配置了 `WDM_` 前缀的环境变量，则前端界面中相应的输入字段将被禁用，用户无法进行修改。
+### 方式一：Docker (推荐)
 
-| 变量名 | 描述 | 默认值 |
-|---|---|---|
-| `DATABASE_URL` | 数据库连接字符串，支持MySQL和SQLite | `sqlite:///webdl-manager.db` |
-| `SESSION_SECRET_KEY` | 会话加密密钥 | `web-dl-manager-shared-secret-key-2024` |
-| `STATIC_SITE_GIT_URL` | 伪装站点 Git 仓库 URL | - |
-| `STATIC_SITE_GIT_BRANCH` | 伪装站点 Git 分支 | `main` |
-| `PRIVATE_MODE` | 启用私有模式 | `false` |
-| `TUNNEL_TOKEN` | Cloudflare Tunnel 令牌 (用于自动启动，Web UI 中不可配置) | - |
-| `DEBUG_MODE` | 启用DEBUG模式，输出详细的工作流日志 | `false` |
-| `APP_USERNAME` | 默认管理员用户名 | `Jyf0214` |
-| `APP_PASSWORD` | 默认管理员密码 | (空) |
-| `AVATAR_URL` | 用户头像URL | `https://github.com/Jyf0214.png` |
-| `WDM_WEBDAV_URL` | WebDAV 上传 URL | - |
-| `WDM_WEBDAV_USER` | WebDAV 用户名 | - |
-| `WDM_WEBDAV_PASS` | WebDAV 密码 | - |
-| `WDM_S3_PROVIDER` | S3 服务提供商 | - |
-| `WDM_S3_ACCESS_KEY_ID` | S3 访问密钥 ID | - |
-| `WDM_S3_SECRET_ACCESS_KEY` | S3 秘密访问密钥 | - |
-| `WDM_S3_REGION` | S3 区域 | - |
-| `WDM_S3_ENDPOINT` | S3 端点 URL | - |
-| `WDM_B2_ACCOUNT_ID` | Backblaze B2 账户 ID | - |
-| `WDM_B2_APPLICATION_KEY` | Backblaze B2 应用密钥 | - |
-| `WDM_GOFILE_TOKEN` | Gofile.io API 令牌 | - |
-| `WDM_GOFILE_FOLDER_ID` | Gofile.io 文件夹 ID | - |
-| `WDM_OPENLIST_URL` | Openlist/Alist URL | - |
-| `WDM_OPENLIST_USER` | Openlist/Alist 用户名 | - |
-| `WDM_OPENLIST_PASS` | Openlist/Alist 密码 | - |
+```bash
+docker run -d \
+  --name web-dl-manager \
+  -p 5492:5492 \
+  -v ./data:/data \
+  -e APP_USERNAME="admin" \
+  -e APP_PASSWORD="your_password" \
+  -e STATIC_SITE_GIT_URL="https://github.com/your/blog.git" \
+  ghcr.io/jyf0214/web-dl-manager:main
+```
 
-## 安全注意事项
+### 方式二：Docker Compose
 
-- **会话密钥：** 建议通过 `SESSION_SECRET_KEY` 环境变量设置自定义会话密钥
-- **数据库连接：** 使用安全的数据库连接字符串，避免硬编码密码
-- **公开访问：** 主应用默认只监听 `127.0.0.1`，需要通过反向代理或内网穿透工具暴露
-- **文件清理：** 任务完成后自动清理临时文件，避免磁盘空间泄漏
-- **日志管理：** 定期清理数据库中的旧日志记录，防止日志表过大
+```yaml
+services:
+  web-dl:
+    image: ghcr.io/jyf0214/web-dl-manager:main
+    ports:
+      - "5492:5492"
+    volumes:
+      - ./gallery-dl-data:/data
+    environment:
+      - DATABASE_URL=sqlite:///data/manager.db
+      - APP_USERNAME=admin
+      - APP_PASSWORD=secure_pass
+      - PRIVATE_MODE=true
+```
+
+---
+
+## 环境变量配置
+
+| 变量 | 描述 | 默认值 |
+| :--- | :--- | :--- |
+| `APP_USERNAME` | 管理员用户名 | `Jyf0214` |
+| `APP_PASSWORD` | 管理员密码 | (空) |
+| `STATIC_SITE_GIT_URL` | 伪装站点 Git 仓库 | - |
+| `PRIVATE_MODE` | 私有模式（强制登录后可见） | `false` |
+| `DEBUG_MODE` | 调试模式（详细日志） | `false` |
+| `WDM_WEBDAV_URL` | 预设 WebDAV 地址 | - |
+| `TUNNEL_TOKEN` | Cloudflare Tunnel 令牌 | - |
+
+---
+
+## 技术栈
+
+- **Backend**: FastAPI (Python)
+- **Frontend**: Bootstrap 5 + Jinja2
+- **Database**: SQLite / MySQL (via SQLAlchemy)
+- **Process Management**: PM2 / Ecosystem.js
+- **Tools**: rclone, gallery-dl, megadl, zstd
+
+---
 
 ## 免责声明
 
--   **一般免责声明：** 本工具按"原样"提供，不作任何保证。用户对使用本应用程序下载的任何内容负全部责任。请尊重您所下载网站的服务条款以及内容创作者的知识产权。
--   **安全性：** 本应用程序旨在作为个人工具使用。请勿在没有适当安全措施（例如，将其置于认证反向代理之后）的情况下将其暴露于公共互联网。
+本工具仅供学习与研究使用。用户在使用本程序下载互联网资源时，需严格遵守当地法律法规以及目标网站的《服务条款》。开发者不对用户因使用本工具而产生的任何版权纠纷或法律后果承担责任。
+
+---
+
+## 贡献与反馈
+
+欢迎提交 PR 或 Issue。如果觉得好用，请给个 ⭐！
