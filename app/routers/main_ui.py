@@ -12,7 +12,6 @@ from ..templating import templates
 from ..config import AVATAR_URL
 
 router = APIRouter(
-    dependencies=[Depends(get_current_user)],
     tags=["main_ui"],
 )
 
@@ -109,6 +108,51 @@ async def get_status(request: Request, task_id: str, current_user: User = Depend
         raise HTTPException(status_code=404, detail=lang["job_not_found"])
     with open(status_file, "r") as f: content = f.read()
     return templates.TemplateResponse("status.html", {"request": request, "task_id": task_id, "log_content": content, "lang": lang, "user": current_user.username})
+
+@router.get("/setup", response_class=HTMLResponse)
+async def get_setup_form_main(request: Request):
+    if User.count_users() > 0:
+        return RedirectResponse(url="/login", status_code=302)
+    lang = get_lang(request)
+    return templates.TemplateResponse("setup.html", {"request": request, "lang": lang, "error": None})
+
+@router.post("/setup", response_class=HTMLResponse)
+async def post_setup_form_main(
+    request: Request, 
+    username: str = Form(...), 
+    password: str = Form(...), 
+    confirm_password: str = Form(...),
+    TUNNEL_TOKEN: str = Form(None),
+    WDM_GOFILE_TOKEN: str = Form(None),
+    WDM_GOFILE_FOLDER_ID: str = Form(None),
+    WDM_OPENLIST_URL: str = Form(None),
+    WDM_OPENLIST_USER: str = Form(None),
+    WDM_OPENLIST_PASS: str = Form(None)
+):
+    lang = get_lang(request)
+    if User.count_users() > 0:
+        return RedirectResponse(url="/login", status_code=302)
+    if password != confirm_password:
+        return templates.TemplateResponse("setup.html", {"request": request, "lang": lang, "error": "Passwords do not match."})
+    if not username or not password:
+        return templates.TemplateResponse("setup.html", {"request": request, "lang": lang, "error": "Username and password cannot be empty."})
+    
+    from ..auth import get_password_hash
+    hashed_password = get_password_hash(password)
+    if User.create_user(username=username, hashed_password=hashed_password, is_admin=True):
+        # Save Configuration
+        if TUNNEL_TOKEN: db_config.set_config("TUNNEL_TOKEN", TUNNEL_TOKEN)
+        if WDM_GOFILE_TOKEN: db_config.set_config("WDM_GOFILE_TOKEN", WDM_GOFILE_TOKEN)
+        if WDM_GOFILE_FOLDER_ID: db_config.set_config("WDM_GOFILE_FOLDER_ID", WDM_GOFILE_FOLDER_ID)
+        if WDM_OPENLIST_URL: db_config.set_config("WDM_OPENLIST_URL", WDM_OPENLIST_URL)
+        if WDM_OPENLIST_USER: db_config.set_config("WDM_OPENLIST_USER", WDM_OPENLIST_USER)
+        if WDM_OPENLIST_PASS: db_config.set_config("WDM_OPENLIST_PASS", WDM_OPENLIST_PASS)
+        
+        request.session["user"] = username
+        request.session["last_activity"] = time.time()
+        return RedirectResponse(url="/downloader", status_code=303)
+    else:
+        return templates.TemplateResponse("setup.html", {"request": request, "lang": lang, "error": "Failed to create user."})
 
 # The main app also has a login form, but it's only used for re-authentication if the session expires.
 # It does not perform setup or first-time login.
