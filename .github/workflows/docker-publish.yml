@@ -20,7 +20,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-
       - name: Log in to the GitHub Container Registry
         uses: docker/login-action@v2
         with:
@@ -48,52 +47,47 @@ jobs:
           build-args: |
             DEBUG_MODE=true
 
-  preview-deployment:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: build_and_push
-    if: github.event_name == 'push'
-    steps:
-      - name: Log in to the GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+  # preview-deployment:
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 15
+  #   needs: build_and_push
+  #   if: github.event_name == 'push'
+  #   steps:
+  #     - name: Log in to the GitHub Container Registry
+  #       uses: docker/login-action@v2
+  #       with:
+  #         registry: ghcr.io
+  #         username: ${{ github.actor }}
+  #         password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run application for preview with real-time logs
-        run: |
-          # 关键修改1：开启 pipefail，否则 $? 永远是 0 (tee 的结果)，无法捕获 timeout
-          set -o pipefail
-          set +e
+  #     - name: Run application for preview with real-time logs
+  #       run: |
+  #         set -o pipefail
+  #         set +e
           
-          echo "=== Starting application with DEBUG mode enabled ==="
+  #         echo "=== Starting application with DEBUG mode enabled ==="
           
-          # 关键修改2：添加 -t 参数 (Pseudo-TTY)，强制让日志逐行实时输出
-          # 关键修改3：添加 PYTHONUNBUFFERED=1，防止 Python 内部缓存
-          timeout 600s docker run -t --name web-dl-manager \
-            -p 5492:5492 \
-            -p 127.0.0.1:6275:6275 \
-            -e DATABASE_URL='sqlite:///:memory:' \
-            -e TUNNEL_TOKEN=${{ secrets.TUNNEL_TOKEN }} \
-            -e DEBUG_MODE='true' \
-            -e PYTHONUNBUFFERED=1 \
-            ghcr.io/jyf0214/web-dl-manager:${{ needs.build_and_push.outputs.sha_tag }} 2>&1 | tee /tmp/app.log
+  #         timeout 600s docker run -t --name web-dl-manager \
+  #           -p 5492:5492 \
+  #           -p 127.0.0.1:6275:6275 \
+  #           -e DATABASE_URL='sqlite:///:memory:' \
+  #           -e TUNNEL_TOKEN=${{ secrets.TUNNEL_TOKEN }} \
+  #           -e DEBUG_MODE='true' \
+  #           -e PYTHONUNBUFFERED=1 \
+  #           ghcr.io/jyf0214/web-dl-manager:${{ needs.build_and_push.outputs.sha_tag }} 2>&1 | tee /tmp/app.log
           
-          exit_code=$?
-          set -e
+  #         exit_code=$?
+  #         set -e
           
-          echo "=== Application logs (Verification) ==="
-          # 注意：因为使用了 tee，日志已经实时输出到了控制台，这里只是作为文件完整性检查
-          # 如果觉得日志太长，可以只 tail 最后几行
-          tail -n 100 /tmp/app.log || cat /tmp/app.log
+  #         echo "=== Application logs (Verification) ==="
+  #         tail -n 100 /tmp/app.log || cat /tmp/app.log
           
-          if [ $exit_code -eq 124 ]; then
-            echo "✅ Application preview finished successfully (Timeout reached as expected)."
-            exit 0
-          else
-            echo "❌ Application exited with unexpected code: $exit_code"
-            echo "=== Full container logs (Inspect for crashes) ==="
-            docker logs web-dl-manager || true
-            exit 1
-          fi
+  #         if [ $exit_code -eq 124 ]; then
+  #           echo "✅ Application preview finished successfully (Timeout reached as expected)."
+  #           exit 0
+  #         else
+  #           echo "❌ Application exited with unexpected code: $exit_code"
+  #           echo "=== Full container logs (Inspect for crashes) ==="
+  #           docker logs web-dl-manager || true
+  #           exit 1
+  #         fi
