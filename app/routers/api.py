@@ -251,6 +251,15 @@ async def cleanup_logs_api():
     except Exception as e:
         return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
 
+@router.post("/cache/clear")
+async def clear_cache_api():
+    from ..database import clear_all_caches
+    try:
+        clear_all_caches()
+        return JSONResponse(content={"status": "success", "message": "All caches cleared successfully."})
+    except Exception as e:
+        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
+
 # --- Server Info ---
 def get_dependency_versions():
     versions = {"python": __import__("sys").version.split(" ")[0], "gallery-dl": "N/A", "rclone": "N/A"}

@@ -41,8 +41,38 @@ def get_disk_usage():
         "percent": (used / total) * 100 if total > 0 else 0,
     }
 
+import time
+
+# In-memory cache for status data
+_status_cache = {
+    "tasks": None,
+    "tasks_time": 0,
+    "active_count": None,
+    "active_count_time": 0,
+    "versions": None,
+    "versions_time": 0
+}
+CACHE_TTL = 30  # 30 seconds for general status
+VERSIONS_TTL = 3600  # 1 hour for versions
+
+def clear_status_cache():
+    """Clears the status cache."""
+    global _status_cache
+    _status_cache = {
+        "tasks": None,
+        "tasks_time": 0,
+        "active_count": None,
+        "active_count_time": 0,
+        "versions": None,
+        "versions_time": 0
+    }
+
 def get_active_tasks():
     """Returns the number of currently active (running or paused) tasks."""
+    now = time.time()
+    if _status_cache["active_count"] is not None and (now - _status_cache["active_count_time"] < CACHE_TTL):
+        return _status_cache["active_count"]
+
     count = 0
     for status_file in STATUS_DIR.glob("*.json"):
         try:
@@ -52,10 +82,17 @@ def get_active_tasks():
                     count += 1
         except (IOError, ValueError):
             continue
+    
+    _status_cache["active_count"] = count
+    _status_cache["active_count_time"] = now
     return count
 
 def get_dependency_versions():
     """Returns a dictionary with versions of key dependencies."""
+    now = time.time()
+    if _status_cache["versions"] is not None and (now - _status_cache["versions_time"] < VERSIONS_TTL):
+        return _status_cache["versions"]
+
     versions = {
         "python": platform.python_version(),
         "gallery-dl": "Not Found",
@@ -66,7 +103,7 @@ def get_dependency_versions():
         result = subprocess.run(["gallery-dl", "--version"], capture_output=True, text=True)
         if result.returncode == 0:
             versions["gallery-dl"] = result.stdout.strip().splitlines()[0]
-    except FileNotFoundError:
+    except Exception:
         pass
         
     try:
@@ -74,9 +111,11 @@ def get_dependency_versions():
         result = subprocess.run(["rclone", "--version"], capture_output=True, text=True)
         if result.returncode == 0:
             versions["rclone"] = result.stdout.strip().splitlines()[0]
-    except FileNotFoundError:
+    except Exception:
         pass
-        
+    
+    _status_cache["versions"] = versions
+    _status_cache["versions_time"] = now
     return versions
 
 import json
@@ -84,6 +123,10 @@ from app.config import STATUS_DIR
 
 def get_all_tasks():
     """Scans the status directory and returns a list of all tasks, sorted by modification time."""
+    now = time.time()
+    if _status_cache["tasks"] is not None and (now - _status_cache["tasks_time"] < CACHE_TTL):
+        return _status_cache["tasks"]
+
     tasks = []
     status_files = list(STATUS_DIR.glob("*.json"))
     
@@ -98,7 +141,9 @@ def get_all_tasks():
         except (IOError, json.JSONDecodeError):
             # In case of read error or malformed JSON, skip the file
             continue
-            
+    
+    _status_cache["tasks"] = tasks
+    _status_cache["tasks_time"] = now
     return tasks
 
 def get_all_status():

@@ -197,6 +197,8 @@ db_config = ConfigManager()
 
 # --- User Helper Wrapper (Adapting to existing code interface) ---
 class User:
+    _user_cache = {}
+
     def __init__(self, id: int, username: str, hashed_password: str, is_admin: bool, **kwargs):
         self.id = id
         self.username = username
@@ -205,11 +207,16 @@ class User:
 
     @staticmethod
     def get_user_by_username(username: str):
+        if username in User._user_cache:
+            return User._user_cache[username]
+
         try:
             with get_db_session() as session:
                 user_db = session.query(UserModel).filter(UserModel.username == username).first()
                 if user_db:
-                    return User(user_db.id, user_db.username, user_db.hashed_password, user_db.is_admin)
+                    user = User(user_db.id, user_db.username, user_db.hashed_password, user_db.is_admin)
+                    User._user_cache[username] = user
+                    return user
                 return None
         except Exception as e:
             logger.error(f"Error getting user by username '{username}': {e}")
@@ -222,6 +229,8 @@ class User:
                 new_user = UserModel(username=username, hashed_password=hashed_password, is_admin=is_admin)
                 session.add(new_user)
                 session.commit()
+                # Clear user cache on new user creation
+                User._user_cache.pop(username, None)
                 logger.info(f"User '{username}' created successfully.")
                 return True
         except Exception as e:
@@ -245,9 +254,20 @@ class User:
                 if user_db:
                     user_db.hashed_password = new_hashed_password
                     session.commit()
+                    # Update cache
+                    if username in User._user_cache:
+                        User._user_cache[username].hashed_password = new_hashed_password
                     logger.info(f"Password updated for user '{username}'.")
                     return True
                 return False
         except Exception as e:
             logger.error(f"Error updating password for user '{username}': {e}")
             return False
+
+def clear_all_caches():
+    """Clears all in-memory caches (config and user)."""
+    db_config.clear_cache()
+    User._user_cache.clear()
+    from . import status
+    status.clear_status_cache()
+    logger.info("All application caches cleared.")
