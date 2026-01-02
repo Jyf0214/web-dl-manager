@@ -95,7 +95,7 @@
 
         async function fetchLogs() {
             try {
-                const response = await fetch(`/status/${taskId}/json`);
+                const response = await fetch(`/api/status/${taskId}/json`);
                 if (response.ok) {
                     const data = await response.json();
                     renderLog(downloadLogContentElement, data.log);

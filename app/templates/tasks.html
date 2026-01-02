@@ -79,21 +79,21 @@
                 </div>
                 <div class="card-footer text-end">
                     {% if task.status == 'running' %}
-                    <form action="/pause/{{ task.id }}" method="post" style="display: inline;">
+                    <form action="/api/pause/{{ task.id }}" method="post" style="display: inline;">
                         <button type-="submit" class="btn btn-info btn-sm">{{ lang.pause_button }}</button>
                     </form>
                     {% elif task.status == 'paused' %}
-                    <form action="/resume/{{ task.id }}" method="post" style="display: inline;">
+                    <form action="/api/resume/{{ task.id }}" method="post" style="display: inline;">
                         <button type="submit" class="btn btn-success btn-sm">{{ lang.resume_button }}</button>
                     </form>
                     {% endif %}
                     {% if task.status == 'failed' %}
-                    <form action="/retry/{{ task.id }}" method="post" style="display: inline;">
+                    <form action="/api/retry/{{ task.id }}" method="post" style="display: inline;">
                         <button type="submit" class="btn btn-warning btn-sm">{{ lang.retry_button }}</button>
                     </form>
                     {% endif %}
                     <a href="/status/{{ task.id }}" class="btn btn-secondary btn-sm">{{ lang.view_log_button }}</a>
-                    <form action="/delete/{{ task.id }}" method="post" style="display: inline;" onsubmit="return confirm('{{ lang.delete_task_confirm }}');">
+                    <form action="/api/delete/{{ task.id }}" method="post" style="display: inline;" onsubmit="return confirm('{{ lang.delete_task_confirm }}');">
                         <button type="submit" class="btn btn-danger btn-sm">{{ lang.delete_button }}</button>
                     </form>
                 </div>
@@ -146,7 +146,7 @@
             }
 
             // Fetch and display current version
-            fetch('/version')
+            fetch('/api/version')
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('current-version').innerText = `当前版本: ${data.version}`;
@@ -158,7 +158,7 @@
                 if (confirm('确定要更新应用程序吗？更新后应用将重启。')) {
                     this.disabled = true;
                     this.innerText = '更新中...';
-                    fetch('/update', {
+                    fetch('/api/update', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -191,7 +191,7 @@
                 if (confirm('确定要清理旧日志吗？这将删除数据库中最旧的20%日志记录。')) {
                     this.disabled = true;
                     this.innerText = '清理中...';
-                    fetch('/cleanup-logs', {
+                    fetch('/api/cleanup-logs', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -215,7 +215,7 @@
             // Fetch and display changelog when modal is shown
             const changelogModal = document.getElementById('changelogModal');
             changelogModal.addEventListener('show.bs.modal', function () {
-                fetch('/changelog')
+                fetch('/api/changelog')
                     .then(response => response.text())
                     .then(data => {
                         const changelogContent = document.getElementById('changelog-content');

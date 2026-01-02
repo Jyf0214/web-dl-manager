@@ -430,7 +430,7 @@
 
         async function fetchStatus() {
             try {
-                const response = await fetch('/server-status/json');
+                const response = await fetch('/api/server-status/json');
                 const data = await response.json();
 
                 // System Info
