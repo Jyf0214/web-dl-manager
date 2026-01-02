@@ -38,6 +38,10 @@ async def run_command(command: str, command_to_log: str, status_file: Path, task
     
     last_exception = None
     
+    # Prepare environment with unbuffered output for Python scripts
+    env = os.environ.copy()
+    env["PYTHONUNBUFFERED"] = "1"
+    
     for attempt in range(max_retries):
         try:
             with open(status_file, "a", encoding="utf-8") as log_file:
@@ -46,7 +50,8 @@ async def run_command(command: str, command_to_log: str, status_file: Path, task
                     command,
                     stdout=log_file,
                     stderr=log_file,
-                    preexec_fn=os.setsid
+                    preexec_fn=os.setsid,
+                    env=env
                 )
 
             try:
