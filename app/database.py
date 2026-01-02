@@ -32,11 +32,18 @@ db_type = 'mysql' if 'mysql' in FINAL_DATABASE_URL else 'sqlite'
 # SQLAlchemy Setup
 def create_db_engine(url):
     """Creates a database engine with a fallback strategy for MySQL SSL."""
+    pool_settings = {
+        "pool_size": 10,
+        "max_overflow": 20,
+        "pool_recycle": 3600,
+        "pool_pre_ping": True,
+    }
+    
     if "mysql" in url:
         # 1. Attempt plain connection first
         try:
             logger.info("Attempting plain MySQL connection...")
-            temp_engine = create_engine(url, pool_pre_ping=True)
+            temp_engine = create_engine(url, **pool_settings)
             # Test connection immediately
             with temp_engine.connect() as conn:
                 logger.info("Plain MySQL connection successful.")
@@ -49,7 +56,7 @@ def create_db_engine(url):
                 # Disabling 'check_hostname' and not providing 'ca' effectively trusts remote certs.
                 ssl_engine = create_engine(
                     url, 
-                    pool_pre_ping=True, 
+                    **pool_settings,
                     connect_args={"ssl": {"check_hostname": False}}
                 )
                 # Test connection
@@ -61,9 +68,11 @@ def create_db_engine(url):
                 raise e2
     else:
         # SQLite or other schemes
+        sqlite_args = {"check_same_thread": False} if "sqlite" in url else {}
         return create_engine(
             url, 
-            connect_args={"check_same_thread": False} if "sqlite" in url else {}
+            pool_pre_ping=True,
+            connect_args=sqlite_args
         )
 
 try:
@@ -122,31 +131,38 @@ def get_db_session():
 
 # --- Configuration Manager ---
 class ConfigManager:
-    """Manages application configuration stored in database."""
+    """Manages application configuration stored in database with memory caching."""
     
+    _cache = {}
+
     def get_config(self, key: str, default=None):
         """
         Retrieves a configuration value.
         Strategy:
-        1. Try to fetch from Database.
-        2. If 'DATABASE_URL' env var is set (MySQL mode), strictly return DB value or default (no fallback to os.environ).
-        3. If using default SQLite, fallback to os.getenv for backward compatibility.
+        1. Try memory cache.
+        2. Try to fetch from Database.
+        3. If 'DATABASE_URL' env var is set (MySQL mode), strictly return DB value or default.
+        4. If using default SQLite, fallback to os.getenv for backward compatibility.
         """
-        # 1. Try DB
+        # 1. Try Cache
+        if key in self._cache:
+            return self._cache[key]
+
+        # 2. Try DB
         db_val = self._get_from_db(key)
         if db_val is not None:
+            self._cache[key] = db_val # Update cache
             return db_val
             
-        # 2. Strict Mode Check
-        # If the user explicitly provided a DATABASE_URL environment variable,
-        # we assume they want strict config management via DB (setup page).
-        # We check os.environ directly to see if the user provided it.
-        # Note: app.config.DATABASE_URL might have a default value, so we check os.environ.
+        # 3. Strict Mode Check
         if os.getenv("DATABASE_URL"):
             return default
             
-        # 3. Fallback to Env (SQLite/Default mode)
-        return os.getenv(key, default)
+        # 4. Fallback to Env (SQLite/Default mode)
+        env_val = os.getenv(key, default)
+        if env_val is not None:
+             self._cache[key] = env_val # Cache env fallback too
+        return env_val
 
     def _get_from_db(self, key: str):
         try:
@@ -168,9 +184,14 @@ class ConfigManager:
                     new_config = ConfigModel(key_name=key, key_value=value)
                     session.add(new_config)
                 session.commit()
+                self._cache[key] = value # Update cache
                 logger.info(f"Config '{key}' set.")
         except Exception as e:
             logger.error(f"Error setting config '{key}': {e}")
+
+    def clear_cache(self):
+        self._cache.clear()
+        logger.info("Configuration cache cleared.")
 
 db_config = ConfigManager()
 
