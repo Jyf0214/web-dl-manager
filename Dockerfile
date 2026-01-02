@@ -1,7 +1,28 @@
-FROM python:3.13-slim
-ARG DEBUG_MODE=false
+# Stage 1: Build
+FROM python:3.13-slim AS builder
 
-# Install runtime system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    binutils \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# 安装依赖以便 PyInstaller 扫描
+COPY app/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir pyinstaller
+
+COPY . .
+
+# 使用 spec 文件构建二进制文件
+RUN pyinstaller web-dl-manager.spec
+
+# Stage 2: Runtime
+FROM python:3.13-slim
+
+# 安装运行时系统依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
@@ -11,58 +32,46 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     cron \
     megatools \
+    ffmpeg \
     && curl https://rclone.org/install.sh | bash \
     && wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb \
     && dpkg -i cloudflared-linux-amd64.deb \
     && rm cloudflared-linux-amd64.deb \
-    && apt-get purge -y --auto-remove curl wget \
+    && apt-get purge -y --auto-remove wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user for security
+# 全局安装必须的外部工具（gallery-dl, yt-dlp）
+RUN pip install --no-cache-dir gallery-dl yt-dlp
+
+# 创建非 root 用户
 RUN useradd -m -u 1000 user
 
 WORKDIR /app
 
-# Create necessary directories
-RUN mkdir -p /app/app /data/downloads /data/archives /data/status
+# 创建必要的数据和日志目录
+RUN mkdir -p /data/downloads /data/archives /data/status /app/logs
 
-# Configure git to clone the repository
-ARG REPO_URL=https://github.com/Jyf0214/web-dl-manager.git
-ARG REPO_BRANCH=main
-# Clear /app directory and clone directly into it
-RUN find /app -mindepth 1 -delete 2>/dev/null || true && \
-    git config --global --add safe.directory /app && \
-    git clone --depth 1 --branch ${REPO_BRANCH} ${REPO_URL} /app && \
-    # Initialize version info file from git SHA
-    cd /app && git rev-parse HEAD > /app/.version_info && \
-    # Set permissions
-    chown -R 1000:1000 /app /data
+# 从构建阶段复制二进制文件及相关配置
+COPY --from=builder /build/dist/web-dl-manager /app/web-dl-manager
+COPY --from=builder /build/CHANGELOG.md /app/CHANGELOG.md
+COPY --from=builder /build/entrypoint.sh /app/entrypoint.sh
 
-# Make entrypoint executable
-RUN chmod +x /app/entrypoint.sh
+# 设置权限
+RUN chown -R 1000:1000 /app /data && chmod +x /app/web-dl-manager /app/entrypoint.sh
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r /app/app/requirements.txt
-RUN pip install --no-cache-dir gunicorn
+# 环境变量设置
+ENV DEBUG_MODE=false
 
-# Set up cron job for the updater script
-RUN echo "0 3 * * * /usr/local/bin/python3 /app/app/updater.py >> /data/status/cron_update.log 2>&1" > /etc/cron.d/updater_cron
-RUN chmod 0644 /etc/cron.d/updater_cron
-RUN crontab /etc/cron.d/updater_cron
-
-# Set DEBUG_MODE environment variable
-ENV DEBUG_MODE=${DEBUG_MODE}
-
-# Switch to the non-root user
+# 切换到非 root 用户
 USER 1000
 
-# Expose the application port
+# 暴露端口
 EXPOSE 5492
 
-# Define volumes for persistent data
+# 挂载持久化卷
 VOLUME /data/downloads
 VOLUME /data/archives
 VOLUME /data/status
 
-# Set the entrypoint
+# 设置入口脚本
 ENTRYPOINT ["/app/entrypoint.sh"]

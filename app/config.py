@@ -1,8 +1,21 @@
 import os
 from pathlib import Path
 
+import sys
+from pathlib import Path
+
 # --- Configuration ---
-BASE_DIR = Path(__file__).resolve().parent
+if getattr(sys, 'frozen', False):
+    # Running in a PyInstaller bundle
+    # sys._MEIPASS is the temporary directory where the bundle is extracted
+    BASE_DIR = Path(sys._MEIPASS) / "app"
+    # sys.executable is the path to the binary
+    PROJECT_ROOT = Path(sys.executable).parent
+else:
+    # Running as a normal Python script
+    BASE_DIR = Path(__file__).resolve().parent
+    PROJECT_ROOT = BASE_DIR.parent
+
 DOWNLOADS_DIR = Path("/data/downloads")
 ARCHIVES_DIR = Path("/data/archives")
 STATUS_DIR = Path("/data/status")
@@ -16,7 +29,7 @@ AVATAR_URL = os.getenv("AVATAR_URL", "https://github.com/Jyf0214.png")
 # --- Database Configuration ---
 # Use a MySQL connection string, e.g., "mysql://user:password@host:port/database"
 # For local development, a SQLite database can be used for simplicity.
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR.parent / 'webdl-manager.db'}")
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{PROJECT_ROOT / 'webdl-manager.db'}")
 
 # --- Config Backup Configuration ---
 CONFIG_BACKUP_RCLONE_BASE64 = os.getenv("WDM_CONFIG_BACKUP_RCLONE_BASE64")
@@ -30,11 +43,10 @@ try:
     os.makedirs(STATUS_DIR, exist_ok=True)
 except PermissionError:
     print("Permission denied to create /data directories. Creating them locally inside the project.")
-    # Redefine paths to be relative to the project root (one level up from app/)
-    project_root = Path(__file__).resolve().parent.parent
-    DOWNLOADS_DIR = project_root / "data" / "downloads"
-    ARCHIVES_DIR = project_root / "data" / "archives"
-    STATUS_DIR = project_root / "data" / "status"
+    # Redefine paths to be relative to the project root
+    DOWNLOADS_DIR = PROJECT_ROOT / "data" / "downloads"
+    ARCHIVES_DIR = PROJECT_ROOT / "data" / "archives"
+    STATUS_DIR = PROJECT_ROOT / "data" / "status"
     os.makedirs(DOWNLOADS_DIR, exist_ok=True)
     os.makedirs(ARCHIVES_DIR, exist_ok=True)
     os.makedirs(STATUS_DIR, exist_ok=True)
