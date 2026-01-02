@@ -7,20 +7,23 @@ import time
 from pathlib import Path
 from datetime import datetime
 import httpx
+from .config import PROJECT_ROOT
 
 # --- Configuration ---
 OWNER = "Jyf0214"
 REPO = "web-dl-manager"
 BRANCH = "main"
-BASE_DIR = Path(__file__).resolve().parent.parent
-VERSION_INFO_FILE = BASE_DIR / ".version_info"
-CHANGELOG_FILE = BASE_DIR / "CHANGELOG.md"
-REQUIREMENTS_FILE = BASE_DIR / "app" / "requirements.txt"
+VERSION_INFO_FILE = PROJECT_ROOT / ".version_info"
+CHANGELOG_FILE = PROJECT_ROOT / "CHANGELOG.md"
+REQUIREMENTS_FILE = PROJECT_ROOT / "app" / "requirements.txt"
 
 # --- Helper Functions ---
 def log(message: str):
     """Prints a message to stdout."""
     print(f"[Updater] {message}", flush=True)
+
+def is_frozen():
+    return getattr(sys, 'frozen', False)
 
 def get_api_headers():
     """Returns headers for GitHub API requests, using a token if available."""
@@ -48,7 +51,7 @@ def get_local_commit_sha() -> str | None:
             capture_output=True,
             text=True,
             check=False,
-            cwd=BASE_DIR
+            cwd=PROJECT_ROOT
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
@@ -149,6 +152,8 @@ def check_for_updates() -> dict:
 
 def update_dependencies() -> dict:
     """Updates Python dependencies from requirements.txt."""
+    if is_frozen():
+        return {"status": "error", "message": "Dependency update is not supported in binary mode."}
     try:
         log("Updating dependencies from requirements.txt...")
         
@@ -222,7 +227,7 @@ def get_update_info() -> dict:
             "commits_behind": check_result.get("commits_behind", 0),
             "last_update_time": last_update_time,
             "dependencies_count": dependency_count,
-            "requirements_file": str(REQUIREMENTS_FILE.relative_to(BASE_DIR)),
+            "requirements_file": str(REQUIREMENTS_FILE.relative_to(PROJECT_ROOT)),
             "changelog_exists": CHANGELOG_FILE.exists()
         }
     except Exception as e:
@@ -234,6 +239,8 @@ def get_update_info() -> dict:
 
 def update_page_library() -> dict:
     """Updates page library (templates and static resources) from GitHub."""
+    if is_frozen():
+        return {"status": "error", "message": "Page library update is not supported in binary mode."}
     try:
         log("Updating page library (templates and static resources)...")
         
@@ -258,7 +265,7 @@ def update_page_library() -> dict:
                     if not should_update:
                         continue
                     
-                    local_path = BASE_DIR / path_str
+                    local_path = PROJECT_ROOT / path_str
                     local_path.parent.mkdir(parents=True, exist_ok=True)
                     
                     download_url = f"https://raw.githubusercontent.com/{OWNER}/{REPO}/{new_sha}/{path_str}"
@@ -333,7 +340,7 @@ def restart_application():
         # Start the application in background using subprocess
         subprocess.Popen(
             [sys.executable, "-m", "app.main"],
-            cwd=BASE_DIR,
+            cwd=PROJECT_ROOT,
             start_new_session=True
         )
         log("New application process started. Current process will exit.")
@@ -348,6 +355,8 @@ def restart_application():
 
 def run_update():
     """Main function to run the update process."""
+    if is_frozen():
+        return {"status": "error", "message": "Self-update is not supported in binary mode. Please update the container/binary manually."}
     log("Starting update process...")
     try:
         # Get current and latest version info
@@ -355,7 +364,7 @@ def run_update():
         log(f"Current local version: {old_sha or 'N/A'}")
         
         # Check if we're in a git repository
-        git_repo_path = BASE_DIR / ".git"
+        git_repo_path = PROJECT_ROOT / ".git"
         if git_repo_path.exists():
             log("Git repository detected, using git pull for update...")
             try:
@@ -372,7 +381,7 @@ def run_update():
                     ["git", "pull", "origin", BRANCH],
                     capture_output=True,
                     text=True,
-                    cwd=BASE_DIR,
+                    cwd=PROJECT_ROOT,
                     timeout=300
                 )
                 
@@ -387,7 +396,7 @@ def run_update():
                     ["git", "rev-parse", "HEAD"],
                     capture_output=True,
                     text=True,
-                    cwd=BASE_DIR,
+                    cwd=PROJECT_ROOT,
                     check=True
                 ).stdout.strip()
                 
@@ -440,7 +449,7 @@ def run_update():
                         log(f"Skipping ignored file: {path_str}")
                         continue
 
-                    local_path = BASE_DIR / path_str
+                    local_path = PROJECT_ROOT / path_str
                     local_path.parent.mkdir(parents=True, exist_ok=True)
                     
                     download_url = f"https://raw.githubusercontent.com/{OWNER}/{REPO}/{new_sha}/{path_str}"

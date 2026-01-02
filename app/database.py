@@ -27,7 +27,11 @@ def init_db_pool():
             url = urlparse(DATABASE_URL)
             if url.scheme == 'sqlite':
                 # For SQLite, store the database path as the pool
-                db_path = url.path.lstrip('/')
+                if DATABASE_URL.startswith('sqlite:////'):
+                    db_path = url.path
+                else:
+                    db_path = url.path.lstrip('/')
+                
                 if not db_path:
                     # Handle in-memory SQLite
                     db_path = ":memory:"

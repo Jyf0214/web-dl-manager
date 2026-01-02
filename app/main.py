@@ -25,7 +25,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from .database import init_db, User, db_config
 from .logging_handler import MySQLLogHandler, cleanup_old_logs
 from .utils import restore_gallery_dl_config
-from .config import BASE_DIR, APP_USERNAME, APP_PASSWORD
+from .config import BASE_DIR, APP_USERNAME, APP_PASSWORD, PROJECT_ROOT
 from .auth import get_password_hash
 from .templating import templates
 from .i18n import get_lang
@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
     await restore_gallery_dl_config()
     
     # Create changelog if it doesn't exist
-    changelog_file = BASE_DIR.parent / "CHANGELOG.md"
+    changelog_file = PROJECT_ROOT / "CHANGELOG.md"
     if not changelog_file.exists():
         changelog_file.write_text("# Changelog\n\nNo changelog information available yet.")
         
@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI):
     logging.info(f"Database logging configured with {logging.getLevelName(log_level)} level.")
     
     # Ensure logs directory exists
-    logs_dir = Path(__file__).resolve().parent.parent / "logs"
+    logs_dir = PROJECT_ROOT / "logs"
     logs_dir.mkdir(exist_ok=True)
     
     # Add file handler for startup logs, regardless of DEBUG_MODE
@@ -132,7 +132,7 @@ def run_camouflage_app():
     is_hf_space = os.getenv("SPACE_ID") is not None
     
     # 确保logs目录存在
-    logs_dir = Path(__file__).resolve().parent.parent / "logs"
+    logs_dir = PROJECT_ROOT / "logs"
     logs_dir.mkdir(exist_ok=True)
     
     # 创建日志配置，始终写入文件，控制台日志级别根据DEBUG_MODE变化
@@ -178,7 +178,7 @@ def run_main_app():
     is_hf_space = os.getenv("SPACE_ID") is not None
     
     # 确保logs目录存在
-    logs_dir = Path(__file__).resolve().parent.parent / "logs"
+    logs_dir = PROJECT_ROOT / "logs"
     logs_dir.mkdir(exist_ok=True)
     
     # 创建日志配置，始终写入文件，控制台日志仅在DEBUG模式下启用
@@ -231,28 +231,42 @@ def start_tunnel_if_env():
 def start_log_endpoint():
     """启动独立的日志端点进程，运行在8901端口，用于查看调试日志"""
     try:
-        project_root = Path(__file__).resolve().parent.parent
-        log_endpoint_script = project_root / "log_endpoint.py"
-        
-        if log_endpoint_script.exists():
-            # 启动日志端点作为独立进程
+        if getattr(sys, 'frozen', False):
+            # If frozen, run the same executable with a flag
             process = subprocess.Popen(
-                [sys.executable, str(log_endpoint_script)],
+                [sys.executable, "--log-endpoint"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True
             )
-            print(f"Log endpoint started on http://0.0.0.0:8901")
-            print("Access logs with header: X-Log-Access-Key: web-dl-manager-debug-key-2024")
-            return process
         else:
-            print(f"Warning: Log endpoint script not found at {log_endpoint_script}")
-            return None
+            # Development mode: run as module
+            process = subprocess.Popen(
+                [sys.executable, "-m", "app.log_endpoint"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                cwd=str(Path(__file__).resolve().parent.parent)
+            )
+
+        print(f"Log endpoint started on http://0.0.0.0:8901")
+        print("Access logs with header: X-Log-Access-Key: web-dl-manager-debug-key-2024")
+        return process
+
     except Exception as e:
         print(f"Failed to start log endpoint: {e}")
         return None
 
-if __name__ == "__main__":
+def main():
+    from multiprocessing import freeze_support
+    freeze_support()
+    
+    # Check for log endpoint flag
+    if "--log-endpoint" in sys.argv:
+        from .log_endpoint import run_log_endpoint
+        run_log_endpoint()
+        sys.exit(0)
+
     debug_enabled = os.getenv("DEBUG_MODE", "false").lower() == "true"
     is_hf_space = os.getenv("SPACE_ID") is not None
 
@@ -313,3 +327,6 @@ if __name__ == "__main__":
             if not is_hf_space:
                 print("\nShutting down services...")
             sys.exit(0)
+
+if __name__ == "__main__":
+    main()
