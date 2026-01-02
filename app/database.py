@@ -27,6 +27,8 @@ elif FINAL_DATABASE_URL.startswith("mysql://"):
     # Automatically use pymysql driver if not specified
     FINAL_DATABASE_URL = FINAL_DATABASE_URL.replace("mysql://", "mysql+pymysql://")
 
+db_type = 'mysql' if 'mysql' in FINAL_DATABASE_URL else 'sqlite'
+
 # SQLAlchemy Setup
 def create_db_engine(url):
     """Creates a database engine with a fallback strategy for MySQL SSL."""
