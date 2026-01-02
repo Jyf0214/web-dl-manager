@@ -1,0 +1,4 @@
+2026-01-02 09:30:30,433 - root - INFO - File logging configured for startup logs.
+2026-01-02 09:30:30,434 - uvicorn.error - INFO - Application startup complete.
+2026-01-02 09:30:30,434 - uvicorn.error - INFO - Uvicorn running on http://127.0.0.1:6275 (Press CTRL+C to quit)
+2026-01-02 09:30:39,395 - uvicorn.access - INFO - 127.0.0.1:46320 - "GET /api/status HTTP/1.1" 404
