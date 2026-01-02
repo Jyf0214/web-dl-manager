@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-01-02
+
+### Added
+- **Database & Architecture**: Migrated to SQLAlchemy with full MySQL support.
+- **Dynamic Configuration**: Enhanced setup page allowing persistence of system parameters (tokens, URLs) in the database.
+- **Session Security**:
+    - Implemented server-side idle timeout (30 minutes).
+    - Dynamic startup session keys (invalidates all sessions on server restart).
+    - Session-only cookies (expires on browser close).
+- **Navigation**: Automatic redirection for authenticated users visiting login or index pages.
+
+### Changed
+- **Config Precedence**: Database settings now take strict priority over environment variables in MySQL mode.
+- **Changelog Logic**: Added remote fetch fallback from GitHub for the web UI.
+
+### Fixed
+- Fixed UTF-8 encoding issues and path resolution for changelog reading.
+- Cleaned up redundant source files from the project root.
+
 ## [0.1.0] - 2026-01-02
 
 ### Added
