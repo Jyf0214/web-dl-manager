@@ -40,21 +40,31 @@ async def get_version():
     version = sha[:7] if sha else "N/A"
     return {"version": version}
 
+# Cache for changelog to avoid frequent remote fetches
+changelog_cache = {"content": None, "last_fetch": 0}
+CHANGELOG_CACHE_TTL = 3600  # 1 hour
+
 @router.get("/changelog")
 async def get_changelog():
-    # Try fetching from GitHub first
-    # Using the standard raw URL format for the main branch
+    current_time = asyncio.get_event_loop().time()
+    
+    # Return cached content if valid
+    if changelog_cache["content"] and (current_time - changelog_cache["last_fetch"] < CHANGELOG_CACHE_TTL):
+        return Response(content=changelog_cache["content"], media_type="text/plain")
+
+    # Try fetching from GitHub
     remote_url = "https://raw.githubusercontent.com/Jyf0214/web-dl-manager/main/CHANGELOG.md"
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=3.0) as client:
             response = await client.get(remote_url)
             if response.status_code == 200:
+                changelog_cache["content"] = response.text
+                changelog_cache["last_fetch"] = current_time
                 return Response(content=response.text, media_type="text/plain")
     except Exception:
-        # If remote fetch fails, silently fall back to local file
         pass
 
-    # Fallback to local file
+    # Fallback to local file (and cache it briefly)
     changelog_file = PROJECT_ROOT / "CHANGELOG.md"
     content = "Changelog not found."
     if changelog_file.exists():
@@ -62,6 +72,12 @@ async def get_changelog():
             content = changelog_file.read_text(encoding="utf-8")
         except Exception as e:
             content = f"Error reading changelog: {str(e)}"
+    
+    # Don't cache error/missing for a full hour, but still cache briefly
+    if not changelog_cache["content"]:
+        changelog_cache["content"] = content
+        changelog_cache["last_fetch"] = current_time
+        
     return Response(content=content, media_type="text/plain")
 
 @router.get("/updates/check")
