@@ -21,7 +21,18 @@ async def get_setup_form(request: Request):
 
 
 @router.post("/setup", response_class=HTMLResponse)
-async def post_setup_form(request: Request, username: str = Form(...), password: str = Form(...), confirm_password: str = Form(...)):
+async def post_setup_form(
+    request: Request, 
+    username: str = Form(...), 
+    password: str = Form(...), 
+    confirm_password: str = Form(...),
+    TUNNEL_TOKEN: str = Form(None),
+    WDM_GOFILE_TOKEN: str = Form(None),
+    WDM_GOFILE_FOLDER_ID: str = Form(None),
+    WDM_OPENLIST_URL: str = Form(None),
+    WDM_OPENLIST_USER: str = Form(None),
+    WDM_OPENLIST_PASS: str = Form(None)
+):
     lang = get_lang(request)
     if User.count_users() > 0:
         return RedirectResponse(url="/login", status_code=302)
@@ -32,6 +43,14 @@ async def post_setup_form(request: Request, username: str = Form(...), password:
     
     hashed_password = get_password_hash(password)
     if User.create_user(username=username, hashed_password=hashed_password, is_admin=True):
+        # Save Configuration
+        if TUNNEL_TOKEN: db_config.set_config("TUNNEL_TOKEN", TUNNEL_TOKEN)
+        if WDM_GOFILE_TOKEN: db_config.set_config("WDM_GOFILE_TOKEN", WDM_GOFILE_TOKEN)
+        if WDM_GOFILE_FOLDER_ID: db_config.set_config("WDM_GOFILE_FOLDER_ID", WDM_GOFILE_FOLDER_ID)
+        if WDM_OPENLIST_URL: db_config.set_config("WDM_OPENLIST_URL", WDM_OPENLIST_URL)
+        if WDM_OPENLIST_USER: db_config.set_config("WDM_OPENLIST_USER", WDM_OPENLIST_USER)
+        if WDM_OPENLIST_PASS: db_config.set_config("WDM_OPENLIST_PASS", WDM_OPENLIST_PASS)
+        
         request.session["user"] = username
         request.session["last_activity"] = time.time()
         return Response(content="Setup complete. Please access the main application on port 6275.", media_type="text/plain")

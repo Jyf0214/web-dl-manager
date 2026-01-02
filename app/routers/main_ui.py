@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from .. import status
 from ..auth import get_current_user, verify_password
-from ..database import User
+from ..database import User, db_config
 from ..i18n import get_lang
 from ..templating import templates
 from ..config import AVATAR_URL
@@ -28,19 +28,19 @@ async def get_downloader(request: Request, current_user: User = Depends(get_curr
     
     # Check which upload services are configured to give hints to the UI
     services_configured = {
-        "webdav_configured": bool(os.getenv("WDM_WEBDAV_URL") and os.getenv("WDM_WEBDAV_USER")),
-        "s3_configured": bool(os.getenv("WDM_S3_ACCESS_KEY_ID") and os.getenv("WDM_S3_SECRET_ACCESS_KEY")),
-        "b2_configured": bool(os.getenv("WDM_B2_ACCOUNT_ID") and os.getenv("WDM_B2_APPLICATION_KEY")),
-        "gofile_configured": bool(os.getenv("WDM_GOFILE_TOKEN")),
-        "openlist_configured": bool(os.getenv("WDM_OPENLIST_URL") and os.getenv("WDM_OPENLIST_USER")),
+        "webdav_configured": bool(db_config.get_config("WDM_WEBDAV_URL") and db_config.get_config("WDM_WEBDAV_USER")),
+        "s3_configured": bool(db_config.get_config("WDM_S3_ACCESS_KEY_ID") and db_config.get_config("WDM_S3_SECRET_ACCESS_KEY")),
+        "b2_configured": bool(db_config.get_config("WDM_B2_ACCOUNT_ID") and db_config.get_config("WDM_B2_APPLICATION_KEY")),
+        "gofile_configured": bool(db_config.get_config("WDM_GOFILE_TOKEN")),
+        "openlist_configured": bool(db_config.get_config("WDM_OPENLIST_URL") and db_config.get_config("WDM_OPENLIST_USER")),
     }
     
     upload_configs = {
-        "webdav": {"url_configured": bool(os.getenv("WDM_WEBDAV_URL")), "user_configured": bool(os.getenv("WDM_WEBDAV_USER")), "pass_configured": bool(os.getenv("WDM_WEBDAV_PASS"))},
-        "s3": {"provider_configured": bool(os.getenv("WDM_S3_PROVIDER")), "access_key_id_configured": bool(os.getenv("WDM_S3_ACCESS_KEY_ID")), "secret_access_key_configured": bool(os.getenv("WDM_S3_SECRET_ACCESS_KEY")), "region_configured": bool(os.getenv("WDM_S3_REGION")), "endpoint_configured": bool(os.getenv("WDM_S3_ENDPOINT"))},
-        "b2": {"account_id_configured": bool(os.getenv("WDM_B2_ACCOUNT_ID")), "application_key_configured": bool(os.getenv("WDM_B2_APPLICATION_KEY"))},
-        "gofile": {"token_configured": bool(os.getenv("WDM_GOFILE_TOKEN")), "folder_id_configured": bool(os.getenv("WDM_GOFILE_FOLDER_ID"))},
-        "openlist": {"url_configured": bool(os.getenv("WDM_OPENLIST_URL")), "user_configured": bool(os.getenv("WDM_OPENLIST_USER")), "pass_configured": bool(os.getenv("WDM_OPENLIST_PASS"))}
+        "webdav": {"url_configured": bool(db_config.get_config("WDM_WEBDAV_URL")), "user_configured": bool(db_config.get_config("WDM_WEBDAV_USER")), "pass_configured": bool(db_config.get_config("WDM_WEBDAV_PASS"))},
+        "s3": {"provider_configured": bool(db_config.get_config("WDM_S3_PROVIDER")), "access_key_id_configured": bool(db_config.get_config("WDM_S3_ACCESS_KEY_ID")), "secret_access_key_configured": bool(db_config.get_config("WDM_S3_SECRET_ACCESS_KEY")), "region_configured": bool(db_config.get_config("WDM_S3_REGION")), "endpoint_configured": bool(db_config.get_config("WDM_S3_ENDPOINT"))},
+        "b2": {"account_id_configured": bool(db_config.get_config("WDM_B2_ACCOUNT_ID")), "application_key_configured": bool(db_config.get_config("WDM_B2_APPLICATION_KEY"))},
+        "gofile": {"token_configured": bool(db_config.get_config("WDM_GOFILE_TOKEN")), "folder_id_configured": bool(db_config.get_config("WDM_GOFILE_FOLDER_ID"))},
+        "openlist": {"url_configured": bool(db_config.get_config("WDM_OPENLIST_URL")), "user_configured": bool(db_config.get_config("WDM_OPENLIST_USER")), "pass_configured": bool(db_config.get_config("WDM_OPENLIST_PASS"))}
     }
     
     return templates.TemplateResponse("downloader.html", {
