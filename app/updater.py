@@ -17,6 +17,8 @@ VERSION_INFO_FILE = PROJECT_ROOT / ".version_info"
 CHANGELOG_FILE = PROJECT_ROOT / "CHANGELOG.md"
 REQUIREMENTS_FILE = PROJECT_ROOT / "app" / "requirements.txt"
 
+import re
+
 # --- Helper Functions ---
 def log(message: str):
     """Prints a message to stdout."""
@@ -32,6 +34,36 @@ def get_api_headers():
     if token:
         headers["Authorization"] = f"token {token}"
     return headers
+
+def get_version_from_changelog(content: str) -> str | None:
+    """Extracts the latest version from changelog content."""
+    # Matches ## [0.1.0] - 2026-01-02
+    match = re.search(r'## \[(.*?)\]', content)
+    if match:
+        return match.group(1)
+    return None
+
+def get_remote_version_tag() -> str | None:
+    """Fetches the latest version tag from the remote CHANGELOG.md."""
+    url = f"https://raw.githubusercontent.com/{OWNER}/{REPO}/{BRANCH}/CHANGELOG.md"
+    try:
+        with httpx.Client(timeout=5.0) as client:
+            response = client.get(url)
+            if response.status_code == 200:
+                return get_version_from_changelog(response.text)
+    except Exception as e:
+        log(f"Failed to fetch remote changelog for version check: {e}")
+    return None
+
+def get_local_version_tag() -> str | None:
+    """Reads the current version tag from the local CHANGELOG.md."""
+    if CHANGELOG_FILE.exists():
+        try:
+            content = CHANGELOG_FILE.read_text(encoding="utf-8")
+            return get_version_from_changelog(content)
+        except Exception:
+            pass
+    return None
 
 def get_latest_commit_sha() -> str:
     """Fetches the SHA of the latest commit from the specified branch."""
@@ -118,6 +150,10 @@ def check_for_updates() -> dict:
         new_sha = get_latest_commit_sha()
         old_sha = get_local_commit_sha()
         
+        # Get semantic versions
+        remote_ver = get_remote_version_tag()
+        local_ver = get_local_version_tag()
+
         update_available = new_sha != old_sha if old_sha else True
         commits_behind = 0
         
@@ -133,8 +169,8 @@ def check_for_updates() -> dict:
         return {
             "status": "success",
             "update_available": update_available,
-            "current_version": old_sha[:7] if old_sha else "N/A",
-            "latest_version": new_sha[:7],
+            "current_version": local_ver if local_ver else (old_sha[:7] if old_sha else "N/A"),
+            "latest_version": remote_ver if remote_ver else new_sha[:7],
             "commits_behind": commits_behind,
             "current_full_sha": old_sha,
             "latest_full_sha": new_sha
@@ -219,7 +255,7 @@ def get_update_info() -> dict:
         
         return {
             "status": "success",
-            "current_version": old_sha[:7] if old_sha else "N/A",
+            "current_version": check_result.get("current_version", "N/A"),
             "current_full_sha": old_sha,
             "update_available": check_result.get("update_available", False),
             "latest_version": check_result.get("latest_version", "N/A"),
