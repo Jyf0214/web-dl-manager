@@ -250,7 +250,7 @@
         // 加载更新日志
         async function loadChangelog() {
             try {
-                const response = await fetch('/changelog');
+                const response = await fetch('/api/changelog');
                 const text = await response.text();
                 document.getElementById('changelog-content').textContent = text;
             } catch (error) {
@@ -305,7 +305,7 @@
                 updateAppBtn.disabled = true;
                 updateAppBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> 更新中...';
                 
-                const response = await fetch('/update', {
+                const response = await fetch('/api/update', {
                     method: 'POST'
                 });
                 const data = await response.json();
