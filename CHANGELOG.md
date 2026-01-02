@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-01-02
+
+### Fixed
+- **Authentication**: Resolved infinite redirect loop on `/login` by removing global authentication dependency from the main UI router.
+- **Setup**: Exposed `/setup` route on the main application port (6275) to prevent 404 errors during direct initialization.
+
 ## [0.1.2] - 2026-01-02
 
 ### Fixed
