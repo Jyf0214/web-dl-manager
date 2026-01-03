@@ -94,25 +94,45 @@
                             <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree">
                                 <div class="accordion-body">
                                     <!-- DeviantArt -->
-                                    <h5>{{ lang.deviantart_credentials_title }}</h5>
-                                    <p class="form-text">{{ lang.deviantart_credentials_text }} <a href="https://gdl-org.github.io/docs/configuration.html#extractor-deviantart-client-id-client-secret" target="_blank">{{ lang.how_to_get_them }}</a></p>
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label for="deviantart_client_id" class="form-label">{{ lang.client_id_label }}</label>
-                                            <input type="text" class="form-control" id="deviantart_client_id" name="deviantart_client_id">
+                                    <div id="gallery-dl-options">
+                                        <h5>{{ lang.deviantart_credentials_title }}</h5>
+                                        <p class="form-text">{{ lang.deviantart_credentials_text }} <a href="https://gdl-org.github.io/docs/configuration.html#extractor-deviantart-client-id-client-secret" target="_blank">{{ lang.how_to_get_them }}</a></p>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="deviantart_client_id" class="form-label">{{ lang.client_id_label }}</label>
+                                                <input type="text" class="form-control" id="deviantart_client_id" name="deviantart_client_id">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="deviantart_client_secret" class="form-label">{{ lang.client_secret_label }}</label>
+                                                <input type="password" class="form-control" id="deviantart_client_secret" name="deviantart_client_secret" autocomplete="new-password">
+                                            </div>
                                         </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label for="deviantart_client_secret" class="form-label">{{ lang.client_secret_label }}</label>
-                                            <input type="password" class="form-control" id="deviantart_client_secret" name="deviantart_client_secret" autocomplete="new-password">
+                                        <hr class="my-4">
+                                        <!-- Proxy -->
+                                        <h5>{{ lang.proxy_label }}</h5>
+                                        <div class="mb-3">
+                                            <label for="proxy" class="form-label">{{ lang.proxy_text }}</label>
+                                            <input type="text" class="form-control" id="proxy" name="proxy" placeholder="{{ lang.proxy_placeholder }}">
                                         </div>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" value="true" id="auto_proxy" name="auto_proxy">
+                                            <label class="form-check-label" for="auto_proxy">{{ lang.auto_proxy_label }}</label>
+                                        </div>
+                                        <div class="alert alert-secondary small py-2">{{ lang.disclaimer_text }}</div>
+                                        <hr class="my-4">
                                     </div>
-                                    <hr class="my-4">
+
                                     <!-- Rate Limit -->
                                     <h5>{{ lang.rate_limit_title }}</h5>
                                     <div class="row">
-                                        <div class="col-md-6 mb-3">
+                                        <div class="col-md-6 mb-3" id="gallery-dl-rate-limit-container">
                                             <label for="rate_limit" class="form-label">{{ lang.rate_limit_text }}</label>
                                             <input type="text" class="form-control" id="rate_limit" name="rate_limit" placeholder="e.g., 500K, 2M" value="2M">
+                                        </div>
+                                        <div class="col-md-6 mb-3" id="megadl-rate-limit-container" style="display: none;">
+                                            <label for="mega_rate_limit" class="form-label">{{ lang.mega_rate_limit_label }}</label>
+                                            <input type="number" step="0.1" class="form-control" id="mega_rate_limit" name="mega_rate_limit" placeholder="e.g., 5" value="5">
+                                            <input type="hidden" id="final_rate_limit" name="rate_limit">
                                         </div>
                                         <div class="col-md-6 mb-3">
                                             <label for="upload_rate_limit" class="form-label">{{ lang.upload_rate_limit_text }}</label>
@@ -120,18 +140,7 @@
                                         </div>
                                     </div>
                                     <hr class="my-4">
-                                    <!-- Proxy -->
-                                    <h5>{{ lang.proxy_label }}</h5>
-                                    <div class="mb-3">
-                                        <label for="proxy" class="form-label">{{ lang.proxy_text }}</label>
-                                        <input type="text" class="form-control" id="proxy" name="proxy" placeholder="{{ lang.proxy_placeholder }}">
-                                    </div>
-                                    <div class="form-check mb-3">
-                                        <input class="form-check-input" type="checkbox" value="true" id="auto_proxy" name="auto_proxy">
-                                        <label class="form-check-label" for="auto_proxy">{{ lang.auto_proxy_label }}</label>
-                                    </div>
-                                    <div class="alert alert-secondary small py-2">{{ lang.disclaimer_text }}</div>
-                                    <hr class="my-4">
+                                    
                                     <!-- Compression -->
                                     <h5>Compression</h5>
                                      <div class="form-check mb-2">
@@ -377,19 +386,51 @@
             }
         }
 
-        document.getElementById('download-form').addEventListener('submit', function() {
+        document.getElementById('download-form').addEventListener('submit', function(e) {
             const button = document.getElementById('submit-button');
             const spinner = button.querySelector('.spinner-border');
+            
+            // Handle MEGA rate limit conversion
+            const downloader = document.getElementById('downloader').value;
+            if (downloader === 'megadl') {
+                const megaRateLimit = document.getElementById('mega_rate_limit').value;
+                if (megaRateLimit) {
+                    // Convert MB/s to Bytes/s
+                    const bytesPerSecond = Math.round(parseFloat(megaRateLimit) * 1024 * 1024);
+                    document.getElementById('final_rate_limit').value = bytesPerSecond;
+                    // Disable the original gallery-dl rate_limit input to avoid overriding
+                    document.getElementById('rate_limit').disabled = true;
+                }
+            } else {
+                // For gallery-dl, ensure the hidden input doesn't interfere
+                document.getElementById('final_rate_limit').disabled = true;
+            }
+
             button.disabled = true;
             spinner.style.display = 'inline-block';
         });
 
         const downloaderSelect = document.getElementById('downloader');
-        const advancedOptionsAccordion = document.getElementById('advanced-options-accordion');
+        const galleryDlOptions = document.getElementById('gallery-dl-options');
+        const galleryDlRateLimit = document.getElementById('gallery-dl-rate-limit-container');
+        const megaDlRateLimit = document.getElementById('megadl-rate-limit-container');
 
-        downloaderSelect.addEventListener('change', function() {
-            advancedOptionsAccordion.style.display = 'block';
-        });
+        function updateDownloaderOptions() {
+            const downloader = downloaderSelect.value;
+            if (downloader === 'megadl') {
+                galleryDlOptions.style.display = 'none';
+                galleryDlRateLimit.style.display = 'none';
+                megaDlRateLimit.style.display = 'block';
+            } else {
+                galleryDlOptions.style.display = 'block';
+                galleryDlRateLimit.style.display = 'block';
+                megaDlRateLimit.style.display = 'none';
+            }
+        }
+
+        downloaderSelect.addEventListener('change', updateDownloaderOptions);
+        // Run on initial load
+        updateDownloaderOptions();
 
         const autoProxyCheckbox = document.getElementById('auto_proxy');
         const proxyInput = document.getElementById('proxy');
