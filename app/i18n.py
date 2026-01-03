@@ -3,7 +3,7 @@ from fastapi import Request
 LANGUAGES = {
     "en": {
         "app_title": "Web-DL-Manager",
-        "intro_text": "This is a self-hostable web application that provides a user-friendly interface for the powerful command-line downloader: `gallery-dl`. It allows you to download image galleries and artist creations, compress them into `.tar.zst` archives, and automatically upload them to your configured storage backend.",
+        "intro_text": "Web-DL-Manager is a simple and efficient download manager designed to provide you with a convenient gallery downloading and automated storage backup experience.",
         "url_label": "URL",
         "url_placeholder": "e.g., https://www.deviantart.com/username/gallery/all or https://kemono.cr/patreon/user/47335841/post/141289985",
         "downloader_label": "Downloader",
@@ -135,7 +135,7 @@ LANGUAGES = {
     },
     "zh": {
         "app_title": "Web-DL-Manager",
-        "intro_text": "这是一个可自托管的 Web 应用程序，它为强大的命令行下载器：`gallery-dl` 提供了一个用户友好的界面。它允许您下载图片画廊和创作者作品，将其压缩为 `.tar.zst` 存档，并自动上传到您配置的存储后端。",
+        "intro_text": "Web-DL-Manager 是一个简单高效的下载管理工具，旨在为您提供便捷的画廊下载与自动化存储备份体验。",
         "url_label": "网址",
         "url_placeholder": "例如：https://www.deviantart.com/username/gallery/all 或 https://kemono.cr/patreon/user/47335841/post/141289985",
         "downloader_label": "下载器",
