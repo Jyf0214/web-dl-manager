@@ -95,8 +95,7 @@ async def settings_page(request: Request, current_user: User = Depends(get_curre
         "request": request,
         "user": current_user.username,
         "lang": lang,
-        "config": current_config,
-        "avatar_url": db_config.get_config("AVATAR_URL", AVATAR_URL)
+        "config": current_config
     })
 
 @router.post("/settings", response_class=HTMLResponse)
