@@ -1,21 +1,19 @@
 module.exports = {
   apps: [
     {
-      name: "web-dl-manager",
-      script: "python",
-      args: "-m app.main",
+      name: "web-dl-manager-next",
+      script: "npm",
+      args: "run dev",
       cwd: __dirname,
       env: {
-        DEBUG_MODE: "false",
-        TUNNEL_TOKEN: process.env.TUNNEL_TOKEN || ""
+        NODE_ENV: "development",
+        PORT: "3000"
       },
       autorestart: true,
       watch: false,
-      max_memory_restart: "200M",
-      log_file: "logs/pm2.log",
-      time: true,
-      instances: 1,
-      exec_mode: "fork"
+      max_memory_restart: "500M",
+      log_file: "logs/next.log",
+      time: true
     }
   ]
 };

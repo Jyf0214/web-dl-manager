@@ -2,3 +2,13 @@
 2026-01-02 09:30:30,434 - uvicorn.error - INFO - Application startup complete.
 2026-01-02 09:30:30,434 - uvicorn.error - INFO - Uvicorn running on http://127.0.0.1:6275 (Press CTRL+C to quit)
 2026-01-02 09:30:39,395 - uvicorn.access - INFO - 127.0.0.1:46320 - "GET /api/status HTTP/1.1" 404
+2026-01-02 23:53:11,147 - root - INFO - File logging configured for startup logs.
+2026-01-02 23:53:11,148 - uvicorn.error - INFO - Application startup complete.
+2026-01-02 23:53:11,149 - uvicorn.error - INFO - Uvicorn running on http://127.0.0.1:6275 (Press CTRL+C to quit)
+2026-01-02 23:54:28,668 - uvicorn.error - INFO - Uvicorn running on http://0.0.0.0:5492 (Press CTRL+C to quit)
+2026-01-02 23:54:28,670 - root - INFO - File logging configured for startup logs.
+2026-01-02 23:54:28,672 - uvicorn.error - INFO - Application startup complete.
+2026-01-02 23:54:28,673 - uvicorn.error - INFO - Uvicorn running on http://127.0.0.1:6275 (Press CTRL+C to quit)
+2026-01-02 23:56:27,354 - root - INFO - File logging configured for startup logs.
+2026-01-02 23:56:27,355 - uvicorn.error - INFO - Application startup complete.
+2026-01-02 23:56:27,356 - uvicorn.error - INFO - Uvicorn running on http://127.0.0.1:6275 (Press CTRL+C to quit)

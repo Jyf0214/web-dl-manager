@@ -1,28 +1,25 @@
 # Stage 1: Build
-FROM python:3.13-slim AS builder
+FROM node:20-slim AS builder
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    python3-dev \
-    binutils \
-    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
 
-WORKDIR /build
+# Copy package files
+COPY package.json package-lock.json ./
 
-# 安装依赖以便 PyInstaller 扫描
-COPY app/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir pyinstaller
+# Install dependencies
+RUN npm ci
 
+# Copy source code
 COPY . .
 
-# 使用 spec 文件构建二进制文件
-RUN pyinstaller web-dl-manager.spec
+# Build the Next.js application
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
 
 # Stage 2: Runtime
-FROM python:3.13-slim
+FROM node:20-slim
 
-# 安装运行时系统依赖
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
@@ -30,48 +27,51 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     zstd \
     git \
-    cron \
     megatools \
     ffmpeg \
+    python3 \
+    python3-pip \
+    python3-setuptools \
     && curl https://rclone.org/install.sh | bash \
-    && wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb \
-    && dpkg -i cloudflared-linux-amd64.deb \
-    && rm cloudflared-linux-amd64.deb \
-    && apt-get purge -y --auto-remove wget \
     && rm -rf /var/lib/apt/lists/*
 
-# 全局安装必须的外部工具（gallery-dl, yt-dlp）
-RUN pip install --no-cache-dir gallery-dl yt-dlp
-
-# 创建非 root 用户
-RUN useradd -m -u 1000 user
+# Install python tools (gallery-dl, yt-dlp)
+# Using --break-system-packages for modern debian/ubuntu or use a venv
+RUN pip3 install --no-cache-dir gallery-dl yt-dlp --break-system-packages || \
+    pip3 install --no-cache-dir gallery-dl yt-dlp
 
 WORKDIR /app
 
-# 创建必要的数据和日志目录
+# Create necessary data and logs directories
 RUN mkdir -p /data/downloads /data/archives /data/status /app/logs
 
-# 从构建阶段复制二进制文件及相关配置
-COPY --from=builder /build/dist/web-dl-manager /app/web-dl-manager
-COPY --from=builder /build/CHANGELOG.md /app/CHANGELOG.md
-COPY --from=builder /build/entrypoint.sh /app/entrypoint.sh
+# Set environment
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=5492
 
-# 设置权限
-RUN chown -R 1000:1000 /app /data && chmod +x /app/web-dl-manager /app/entrypoint.sh
+# Copy built application from builder
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/package-lock.json ./package-lock.json
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/CHANGELOG.md ./CHANGELOG.md
 
-# 环境变量设置
-ENV DEBUG_MODE=false
+# Setup permissions
+RUN groupadd -g 1000 appgroup && \
+    useradd -u 1000 -g appgroup -m appuser && \
+    chown -R 1000:1000 /app /data
 
-# 切换到非 root 用户
 USER 1000
 
-# 暴露端口
+# Expose port
 EXPOSE 5492
 
-# 挂载持久化卷
+# Persist data
 VOLUME /data/downloads
 VOLUME /data/archives
 VOLUME /data/status
 
-# 设置入口脚本
-ENTRYPOINT ["/app/entrypoint.sh"]
+# Start the application
+CMD ["npm", "start"]

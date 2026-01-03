@@ -1,0 +1,14 @@
+{
+  "app_title": "Web-DL-Manager",
+  "intro_text": "这是一个为 gallery-dl 提供界面的自托管 Web 应用。支持下载画廊、压缩为 .tar.zst 并上传到存储后端。",
+  "url_label": "网址",
+  "url_placeholder": "例如：https://www.deviantart.com/username/gallery/all",
+  "downloader_label": "下载器",
+  "advanced_options_title": "高级选项",
+  "upload_config_title": "上传配置",
+  "start_download_button": "开始下载",
+  "nav_downloader": "下载器",
+  "nav_tasks": "任务列表",
+  "nav_settings": "系统设置",
+  "nav_logout": "退出登录"
+}

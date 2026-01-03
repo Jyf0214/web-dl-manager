@@ -1,0 +1,14 @@
+{
+  "app_title": "Web-DL-Manager",
+  "intro_text": "This is a self-hostable web application providing a UI for gallery-dl. Download galleries, compress to .tar.zst, and upload to storage.",
+  "url_label": "URL",
+  "url_placeholder": "e.g., https://www.deviantart.com/username/gallery/all",
+  "downloader_label": "Downloader",
+  "advanced_options_title": "Advanced Options",
+  "upload_config_title": "Upload Configuration",
+  "start_download_button": "Start Download",
+  "nav_downloader": "Downloader",
+  "nav_tasks": "Tasks",
+  "nav_settings": "Settings",
+  "nav_logout": "Logout"
+}
