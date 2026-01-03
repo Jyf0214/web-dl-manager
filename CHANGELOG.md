@@ -9,10 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Dashboard**: Introduced a standalone static dashboard at `/page` featuring a modern UI and CORS support for flexible access.
-- **Settings**: Added a dedicated system settings page, enabling users to update configurations directly through the UI after logging in.
+- **Settings Expansion**: Significantly expanded the system settings page to support almost all environment and database configurations (WebDAV, S3, B2, GoFile, Openlist, Backup settings, Login Domain, etc.) directly from the UI.
+- **Downloader UI**: Implemented dynamic option visibility in the downloader interface; advanced options now automatically show or hide based on the selected tool (e.g., hiding DeviantArt credentials when using `megadl`).
+- **MEGA Support**: Added a user-friendly MB/s rate limit field for `megadl` with automatic real-time conversion to bytes for backend processing.
 
 ### Optimized
 - **Caching**: Implemented a comprehensive memory caching layer for users and tasks, including manual cache refresh capabilities to ensure data consistency and performance.
+- **Consistency**: Standardized configuration keys (e.g., `TUNNEL_TOKEN`) to uppercase across the entire codebase to prevent case-sensitivity issues between database and environment variables.
+- **Repository**: Updated `.gitignore` to properly exclude build artifacts (`.next/`, `node_modules/`) and application log files.
+
 
 ## [0.1.5] - 2026-01-02
 
