@@ -59,11 +59,10 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/CHANGELOG.md ./CHANGELOG.md
 
 # Setup permissions
-RUN groupadd -g 1000 appgroup && \
-    useradd -u 1000 -g appgroup -m appuser && \
-    chown -R 1000:1000 /app /data
+# node:slim images already have a 'node' user with UID 1000
+RUN chown -R node:node /app /data
 
-USER 1000
+USER node
 
 # Expose port
 EXPOSE 5492
