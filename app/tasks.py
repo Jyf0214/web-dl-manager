@@ -8,6 +8,7 @@ from pathlib import Path
 
 
 from . import openlist
+from .database import db_config
 from .config import DOWNLOADS_DIR, ARCHIVES_DIR, STATUS_DIR
 from .utils import (
     get_working_proxy,
@@ -129,12 +130,12 @@ async def upload_uncompressed(task_id: str, service: str, upload_path: str, para
     
     if service == "openlist":
             try:
-                openlist_url = params.get("openlist_url")
-                openlist_user = params.get("openlist_user")
-                openlist_pass = params.get("openlist_pass")
+                openlist_url = params.get("openlist_url") or db_config.get_config("WDM_OPENLIST_URL")
+                openlist_user = params.get("openlist_user") or db_config.get_config("WDM_OPENLIST_USER")
+                openlist_pass = params.get("openlist_pass") or db_config.get_config("WDM_OPENLIST_PASS")
     
                 if not all([openlist_url, openlist_user, openlist_pass, upload_path]):
-                    raise openlist.OpenlistError("Openlist URL, username, password, and remote path are all required.")
+                    raise openlist.OpenlistError(f"Openlist configuration missing (URL, username, password, or remote path). Params: {params.get('openlist_url')}, {params.get('openlist_user')}, {params.get('openlist_pass')}")
     
                 with open(status_file, "a") as f:
                     f.write(f"\n--- Starting Openlist Upload (Uncompressed) ---\n")
@@ -170,7 +171,13 @@ async def upload_uncompressed(task_id: str, service: str, upload_path: str, para
             return
     
     rclone_config_path = create_rclone_config(task_id, service, params)
-    
+    if not rclone_config_path:
+        error_message = f"Failed to create rclone configuration for {service}. Please check your settings in the Settings page."
+        with open(status_file, "a") as f:
+            f.write(f"\n--- UPLOAD FAILED ---\n{error_message}\n")
+        update_task_status(task_id, {"status": "failed", "error": error_message})
+        return
+
     if "terabox" in upload_path:
         remote_full_path = f"remote:{upload_path}"
     else:
@@ -357,8 +364,8 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
             if service == "gofile":
                 if debug_enabled:
                     logger.debug(f"[WORKFLOW] 使用 gofile.io 上传: {archive_path}")
-                gofile_token = params.get("gofile_token")
-                gofile_folder_id = params.get("gofile_folder_id")
+                gofile_token = params.get("gofile_token") or db_config.get_config("WDM_GOFILE_TOKEN")
+                gofile_folder_id = params.get("gofile_folder_id") or db_config.get_config("WDM_GOFILE_FOLDER_ID")
                 if gofile_token and not gofile_folder_id:
                     gofile_folder_id = "ad957716-3899-498a-bebc-716f616f9b16"
                 download_link = await upload_to_gofile(archive_path, status_file, api_token=gofile_token, folder_id=gofile_folder_id)
@@ -371,9 +378,9 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
             elif service == "openlist":
                 if debug_enabled:
                     logger.debug(f"[WORKFLOW] 使用 Openlist 上传: {archive_path}")
-                openlist_url = params.get("openlist_url")
-                openlist_user = params.get("openlist_user")
-                openlist_pass = params.get("openlist_pass")
+                openlist_url = params.get("openlist_url") or db_config.get_config("WDM_OPENLIST_URL")
+                openlist_user = params.get("openlist_user") or db_config.get_config("WDM_OPENLIST_USER")
+                openlist_pass = params.get("openlist_pass") or db_config.get_config("WDM_OPENLIST_PASS")
                 if not all([openlist_url, openlist_user, openlist_pass, upload_path]):
                     raise openlist.OpenlistError("Openlist URL, username, password, and remote path are all required.")
                 with open(status_file, "a") as f: f.write(f"\n--- Starting Openlist Upload ---\n")
@@ -388,6 +395,9 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
                 if debug_enabled:
                     logger.debug(f"[WORKFLOW] 使用 rclone 上传到 {service}: {archive_path}")
                 rclone_config_path = create_rclone_config(task_id, service, params)
+                if not rclone_config_path:
+                    raise RuntimeError(f"Failed to create rclone configuration for {service}. Please check your settings in the Settings page.")
+                
                 remote_full_path = f"remote:{upload_path}"
                 upload_cmd = (
                     f"rclone copyto --config \"{rclone_config_path}\" \"{archive_path}\" \"{remote_full_path}/{archive_path.name}\" "
