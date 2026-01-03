@@ -182,11 +182,27 @@ async def change_password(
 async def get_status(request: Request, task_id: str, current_user: User = Depends(get_current_user)):
     lang = get_lang(request)
     status_file = status.STATUS_DIR / f"{task_id}.log"
+    upload_log_file = status.STATUS_DIR / f"{task_id}_upload.log"
+    
     if not status_file.exists():
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail=lang["job_not_found"])
+        
     with open(status_file, "r") as f: content = f.read()
-    return templates.TemplateResponse("status.html", {"request": request, "task_id": task_id, "log_content": content, "lang": lang, "user": current_user.username})
+    
+    upload_content = ""
+    if upload_log_file.exists():
+        with open(upload_log_file, "r") as f:
+            upload_content = f.read()
+            
+    return templates.TemplateResponse("status.html", {
+        "request": request, 
+        "task_id": task_id, 
+        "log_content": content, 
+        "upload_log_content": upload_content,
+        "lang": lang, 
+        "user": current_user.username
+    })
 
 @router.get("/setup", response_class=HTMLResponse)
 async def get_setup_form_main(request: Request):

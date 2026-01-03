@@ -251,6 +251,7 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
     task_download_dir = DOWNLOADS_DIR / task_id
     archive_name = generate_archive_name(url)
     status_file = STATUS_DIR / f"{task_id}.log"
+    upload_log_file = STATUS_DIR / f"{task_id}_upload.log"
     archive_paths = []
     rclone_config_path = None
 
@@ -328,10 +329,14 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
             if debug_enabled:
                 logger.debug(f"[WORKFLOW] 跳过压缩，直接上传")
             update_task_status(task_id, {"status": "uploading"})
-            await upload_uncompressed(task_id, service, upload_path, params, status_file)
+            with open(upload_log_file, "w") as f:
+                f.write(f"Starting uncompressed upload for job {task_id}\n")
+            await upload_uncompressed(task_id, service, upload_path, params, upload_log_file)
             update_task_status(task_id, {"status": "completed"})
             with open(status_file, "a") as f:
                 f.write("\nJob completed successfully (compression disabled).\n")
+            with open(upload_log_file, "a") as f:
+                f.write("\nUpload completed successfully.\n")
             return
 
         update_task_status(task_id, {"status": "compressing"})
@@ -360,6 +365,9 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
         if debug_enabled:
             logger.debug(f"[WORKFLOW] 开始上传到 {service}")
         
+        with open(upload_log_file, "w") as f:
+            f.write(f"Starting upload for job {task_id} to {service}\n")
+
         for archive_path in archive_paths:
             if service == "gofile":
                 if debug_enabled:
@@ -368,7 +376,7 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
                 gofile_folder_id = params.get("gofile_folder_id") or db_config.get_config("WDM_GOFILE_FOLDER_ID")
                 if gofile_token and not gofile_folder_id:
                     gofile_folder_id = "ad957716-3899-498a-bebc-716f616f9b16"
-                download_link = await upload_to_gofile(archive_path, status_file, api_token=gofile_token, folder_id=gofile_folder_id)
+                download_link = await upload_to_gofile(archive_path, upload_log_file, api_token=gofile_token, folder_id=gofile_folder_id)
                 update_task_status(task_id, {"status": "completed", "gofile_link": download_link})
                 if debug_enabled:
                     logger.debug(f"[WORKFLOW] gofile.io 上传完成，链接: {download_link}")
@@ -383,11 +391,11 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
                 openlist_pass = params.get("openlist_pass") or db_config.get_config("WDM_OPENLIST_PASS")
                 if not all([openlist_url, openlist_user, openlist_pass, upload_path]):
                     raise openlist.OpenlistError("Openlist URL, username, password, and remote path are all required.")
-                with open(status_file, "a") as f: f.write(f"\n--- Starting Openlist Upload ---\n")
-                token = openlist.login(openlist_url, openlist_user, openlist_pass, status_file)
-                openlist.create_directory(openlist_url, token, upload_path, status_file)
+                with open(upload_log_file, "a") as f: f.write(f"\n--- Starting Openlist Upload ---\n")
+                token = openlist.login(openlist_url, openlist_user, openlist_pass, upload_log_file)
+                openlist.create_directory(openlist_url, token, upload_path, upload_log_file)
                 for p in archive_paths:
-                    openlist.upload_file(openlist_url, token, p, upload_path, status_file)
+                    openlist.upload_file(openlist_url, token, p, upload_path, upload_log_file)
                 update_task_status(task_id, {"status": "completed"})
                 if debug_enabled:
                     logger.debug(f"[WORKFLOW] Openlist 上传完成")
@@ -405,18 +413,24 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
                 )
                 if params.get("upload_rate_limit"):
                     upload_cmd += f" --bwlimit {params['upload_rate_limit']}"
-                await run_command(upload_cmd, upload_cmd, status_file, task_id)
+                await run_command(upload_cmd, upload_cmd, upload_log_file, task_id)
                 update_task_status(task_id, {"status": "completed"})
                 if debug_enabled:
                     logger.debug(f"[WORKFLOW] rclone 上传完成")
 
         with open(status_file, "a") as f:
             f.write("\nJob completed successfully!\n")
+        with open(upload_log_file, "a") as f:
+            f.write("\nUpload completed successfully!\n")
 
     except Exception as e:
         error_message = f"An error occurred: {str(e)}"
         with open(status_file, "a") as f:
             f.write(f"\n--- JOB FAILED ---\n{error_message}\n")
+        # Also write to upload log if it fails during upload
+        if os.path.exists(upload_log_file):
+             with open(upload_log_file, "a") as f:
+                f.write(f"\n--- UPLOAD FAILED ---\n{error_message}\n")
         update_task_status(task_id, {"status": "failed", "error": error_message})
     finally:
         # --- MEMORY LEAK FIX ---

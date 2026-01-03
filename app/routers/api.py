@@ -195,6 +195,7 @@ async def resume_task(task_id: str):
 async def delete_task(task_id: str):
     status_path = get_task_status_path(task_id)
     log_path = STATUS_DIR / f"{task_id}.log"
+    upload_log_path = STATUS_DIR / f"{task_id}_upload.log"
     oauth_log_path = STATUS_DIR / f"oauth_{task_id}.log"
 
     deleted = False
@@ -203,6 +204,9 @@ async def delete_task(task_id: str):
         deleted = True
     if log_path.exists():
         log_path.unlink()
+        deleted = True
+    if upload_log_path.exists():
+        upload_log_path.unlink()
         deleted = True
     if oauth_log_path.exists(): # Also clean up potential oauth logs
         oauth_log_path.unlink()
@@ -217,7 +221,8 @@ async def delete_task(task_id: str):
 @router.get("/status/{task_id}/json")
 async def get_status_json(task_id: str):
     status_path = get_task_status_path(task_id)
-    log_path = STATUS_DIR / f"{task_id}.log"
+    download_log_path = STATUS_DIR / f"{task_id}.log"
+    upload_log_path = STATUS_DIR / f"{task_id}_upload.log"
     status_data = {}
     if status_path.exists():
         with open(status_path, "r") as f:
@@ -226,12 +231,22 @@ async def get_status_json(task_id: str):
             except json.JSONDecodeError:
                 status_data = {"status": "error", "error": "Invalid status file"}
     
-    log_content = ""
-    if log_path.exists():
-        with open(log_path, "r") as f:
-            log_content = f.read()
+    download_log = ""
+    if download_log_path.exists():
+        with open(download_log_path, "r") as f:
+            download_log = f.read()
             
-    return JSONResponse({"status": status_data, "log": log_content})
+    upload_log = ""
+    if upload_log_path.exists():
+        with open(upload_log_path, "r") as f:
+            upload_log = f.read()
+            
+    return JSONResponse({
+        "status": status_data, 
+        "log": download_log,  # For backward compatibility
+        "download_log": download_log,
+        "upload_log": upload_log
+    })
 
 @router.get("/status/{task_id}/raw")
 async def get_status_raw(task_id: str):

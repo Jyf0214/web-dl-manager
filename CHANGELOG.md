@@ -8,12 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.6] - 2026-01-03
 
 ### Added
+- **Log Management**: Separated download and upload logs into distinct files and UI containers for better clarity and debugging.
 - **Dashboard**: Introduced a standalone static dashboard at `/page` featuring a modern UI and CORS support for flexible access.
 - **Settings Expansion**: Significantly expanded the system settings page to support almost all environment and database configurations (WebDAV, S3, B2, GoFile, Openlist, Backup settings, Login Domain, etc.) directly from the UI.
 - **Downloader UI**: Implemented dynamic option visibility in the downloader interface; advanced options now automatically show or hide based on the selected tool (e.g., hiding DeviantArt credentials when using `megadl`).
 - **MEGA Support**: Added a user-friendly MB/s rate limit field for `megadl` with automatic real-time conversion to bytes for backend processing.
 
 ### Optimized
+- **Log UI**: Redesigned the status page with dual dark-mode log containers, featuring independent scrolling, folding, copying, and synchronized font size adjustments.
 - **Caching**: Implemented a comprehensive memory caching layer for users and tasks, including manual cache refresh capabilities to ensure data consistency and performance.
 - **UI & UX**:
     - Fixed an issue where avatars failed to load (`about:blank#blocked`) on several pages by implementing a CSS variable-based loading strategy and a global template context function.
