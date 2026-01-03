@@ -7,11 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0] - 2026-01-03
 
-### Fixed
-- **Openlist Timeout**: Resolved a critical issue where Openlist file uploads would block the main application thread, causing Cloudflare 524 timeouts. The upload process is now fully asynchronous.
-
-## [0.1.6] - 2026-01-03
-
 ### Added
 - **Upload Progress**: Implemented real-time upload progress tracking for both rclone and Openlist, including percentage, file counts, and data size.
 - **Speed Dashboard**: Added a real-time network speed monitor (Up/Down) to the job status page.
@@ -28,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Caching**: Implemented a comprehensive memory caching layer for users and tasks, including manual cache refresh capabilities to ensure data consistency and performance.
 
 ### Fixed
+- **Openlist Timeout**: Resolved a critical issue where Openlist file uploads would block the main application thread, causing Cloudflare 524 timeouts. The upload process is now fully asynchronous.
 - **NameError**: Resolved an issue where `count_files_in_dir` was used in `tasks.py` without being imported, causing job failures after download.
 - **MEGA Downloads**: Fixed a `Not a directory` error during `megadl` jobs by ensuring the target download directory exists before starting the download.
 
