@@ -120,14 +120,24 @@ async def run_command(command: str, command_to_log: str, status_file: Path, task
 
 
 async def upload_uncompressed(task_id: str, service: str, upload_path: str, params: dict, status_file: Path):
-    """Uploads the uncompressed files to the remote storage."""
+    """Uploads the uncompressed files to the remote storage with progress tracking."""
     if service == "gofile":
         with open(status_file, "a") as f:
             f.write("\nUncompressed upload is not supported for gofile.io.\n")
         return
     
     task_download_dir = DOWNLOADS_DIR / task_id
-    
+    stats = count_files_in_dir(task_download_dir)
+    update_task_status(task_id, {
+        "upload_stats": {
+            "total_files": stats["count"],
+            "total_size": stats["size"],
+            "uploaded_files": 0,
+            "uploaded_size": 0,
+            "percent": 0
+        }
+    })
+
     if service == "openlist":
             try:
                 openlist_url = params.get("openlist_url") or db_config.get_config("WDM_OPENLIST_URL")
@@ -135,7 +145,7 @@ async def upload_uncompressed(task_id: str, service: str, upload_path: str, para
                 openlist_pass = params.get("openlist_pass") or db_config.get_config("WDM_OPENLIST_PASS")
     
                 if not all([openlist_url, openlist_user, openlist_pass, upload_path]):
-                    raise openlist.OpenlistError(f"Openlist configuration missing (URL, username, password, or remote path). Params: {params.get('openlist_url')}, {params.get('openlist_user')}, {params.get('openlist_pass')}")
+                    raise openlist.OpenlistError(f"Openlist configuration missing.")
     
                 with open(status_file, "a") as f:
                     f.write(f"\n--- Starting Openlist Upload (Uncompressed) ---\n")
@@ -148,14 +158,26 @@ async def upload_uncompressed(task_id: str, service: str, upload_path: str, para
                     remote_task_dir = f"{upload_path}/{task_id}"
                 openlist.create_directory(openlist_url, token, remote_task_dir, status_file)
                 
+                uploaded_count = 0
                 async def upload_dir_contents(local_dir: Path, remote_dir: str):
+                    nonlocal uploaded_count
                     for item in local_dir.iterdir():
-                        remote_item_path = f"{remote_dir}/{item.name}"
                         if item.is_dir():
+                            remote_item_path = f"{remote_dir}/{item.name}"
                             openlist.create_directory(openlist_url, token, remote_item_path, status_file)
                             await upload_dir_contents(item, remote_item_path)
                         else:
                             openlist.upload_file(openlist_url, token, item, remote_dir, status_file)
+                            uploaded_count += 1
+                            percent = int((uploaded_count / stats["count"]) * 100) if stats["count"] > 0 else 100
+                            update_task_status(task_id, {
+                                "upload_stats": {
+                                    "total_files": stats["count"],
+                                    "total_size": stats["size"],
+                                    "uploaded_files": uploaded_count,
+                                    "percent": percent
+                                }
+                            })
     
                 await upload_dir_contents(task_download_dir, remote_task_dir)
     
@@ -172,7 +194,7 @@ async def upload_uncompressed(task_id: str, service: str, upload_path: str, para
     
     rclone_config_path = create_rclone_config(task_id, service, params)
     if not rclone_config_path:
-        error_message = f"Failed to create rclone configuration for {service}. Please check your settings in the Settings page."
+        error_message = f"Failed to create rclone configuration for {service}."
         with open(status_file, "a") as f:
             f.write(f"\n--- UPLOAD FAILED ---\n{error_message}\n")
         update_task_status(task_id, {"status": "failed", "error": error_message})
@@ -185,7 +207,7 @@ async def upload_uncompressed(task_id: str, service: str, upload_path: str, para
         
     upload_cmd = (
         f"rclone copy --config \"{rclone_config_path}\" \"{task_download_dir}\" \"{remote_full_path}\" "
-        f"-P --log-level=INFO --retries 5"
+        f"-P --stats 1s --log-level=INFO --retries 5"
     )
     if params.get("upload_rate_limit"):
         upload_cmd += f" --bwlimit {params['upload_rate_limit']}"
@@ -368,6 +390,17 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
         with open(upload_log_file, "w") as f:
             f.write(f"Starting upload for job {task_id} to {service}\n")
 
+        # Initialize upload stats
+        total_upload_files = len(archive_paths)
+        update_task_status(task_id, {
+            "upload_stats": {
+                "total_files": total_upload_files,
+                "uploaded_files": 0,
+                "percent": 0
+            }
+        })
+
+        uploaded_count = 0
         for archive_path in archive_paths:
             if service == "gofile":
                 if debug_enabled:
@@ -377,7 +410,18 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
                 if gofile_token and not gofile_folder_id:
                     gofile_folder_id = "ad957716-3899-498a-bebc-716f616f9b16"
                 download_link = await upload_to_gofile(archive_path, upload_log_file, api_token=gofile_token, folder_id=gofile_folder_id)
-                update_task_status(task_id, {"status": "completed", "gofile_link": download_link})
+                
+                uploaded_count += 1
+                percent = int((uploaded_count / total_upload_files) * 100)
+                update_task_status(task_id, {
+                    "status": "completed" if uploaded_count == total_upload_files else "uploading",
+                    "gofile_link": download_link,
+                    "upload_stats": {
+                        "total_files": total_upload_files,
+                        "uploaded_files": uploaded_count,
+                        "percent": percent
+                    }
+                })
                 if debug_enabled:
                     logger.debug(f"[WORKFLOW] gofile.io 上传完成，链接: {download_link}")
 
@@ -394,9 +438,20 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
                 with open(upload_log_file, "a") as f: f.write(f"\n--- Starting Openlist Upload ---\n")
                 token = openlist.login(openlist_url, openlist_user, openlist_pass, upload_log_file)
                 openlist.create_directory(openlist_url, token, upload_path, upload_log_file)
-                for p in archive_paths:
-                    openlist.upload_file(openlist_url, token, p, upload_path, upload_log_file)
-                update_task_status(task_id, {"status": "completed"})
+                
+                # Single archive upload in openlist (could be multiple if split)
+                openlist.upload_file(openlist_url, token, archive_path, upload_path, upload_log_file)
+                
+                uploaded_count += 1
+                percent = int((uploaded_count / total_upload_files) * 100)
+                update_task_status(task_id, {
+                    "upload_stats": {
+                        "total_files": total_upload_files,
+                        "uploaded_files": uploaded_count,
+                        "percent": percent
+                    }
+                })
+                
                 if debug_enabled:
                     logger.debug(f"[WORKFLOW] Openlist 上传完成")
             else:
@@ -409,14 +464,25 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
                 remote_full_path = f"remote:{upload_path}"
                 upload_cmd = (
                     f"rclone copyto --config \"{rclone_config_path}\" \"{archive_path}\" \"{remote_full_path}/{archive_path.name}\" "
-                    f"-P --log-level=INFO --retries 5"
+                    f"-P --stats 1s --log-level=INFO --retries 5"
                 )
                 if params.get("upload_rate_limit"):
                     upload_cmd += f" --bwlimit {params['upload_rate_limit']}"
                 await run_command(upload_cmd, upload_cmd, upload_log_file, task_id)
-                update_task_status(task_id, {"status": "completed"})
+                
+                uploaded_count += 1
+                percent = int((uploaded_count / total_upload_files) * 100)
+                update_task_status(task_id, {
+                    "upload_stats": {
+                        "total_files": total_upload_files,
+                        "uploaded_files": uploaded_count,
+                        "percent": percent
+                    }
+                })
+                
                 if debug_enabled:
                     logger.debug(f"[WORKFLOW] rclone 上传完成")
+
 
         with open(status_file, "a") as f:
             f.write("\nJob completed successfully!\n")

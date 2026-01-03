@@ -40,6 +40,26 @@
         .log-line.selected {
             background-color: rgba(102, 126, 234, 0.3);
         }
+        .progress-panel {
+            background: var(--white);
+            border-radius: var(--border-radius-md);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+        .speed-badge {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 20px;
+            background: #f0f2f5;
+            color: #495057;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .speed-up { color: #d63384; }
+        .speed-down { color: #0d6efd; }
     </style>
 </head>
 <body>
@@ -52,7 +72,33 @@
                 <h1 class="card-title mb-4">
                     <i class="bi bi-activity"></i> {{ lang.job_status_title }}
                 </h1>
-                <p class="text-muted">{{ lang.task_id_label }} <span class="font-monospace">{{ task_id }}</span></p>
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <p class="text-muted mb-0">{{ lang.task_id_label }} <span class="font-monospace">{{ task_id }}</span></p>
+                    <div class="d-flex gap-2">
+                        <div class="speed-badge">
+                            <i class="bi bi-arrow-up speed-up"></i> <span id="net-speed-up">0 KB/s</span>
+                        </div>
+                        <div class="speed-badge">
+                            <i class="bi bi-arrow-down speed-down"></i> <span id="net-speed-down">0 KB/s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Panel -->
+                <div id="upload-progress-panel" class="progress-panel" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0 fw-bold"><i class="bi bi-cloud-arrow-up"></i> {{ lang.upload_progress_label }}</h6>
+                        <span id="upload-files-info" class="badge bg-light text-dark">0 / 0 {{ lang.files_count_label }}</span>
+                    </div>
+                    <div class="progress mb-2" style="height: 12px;">
+                        <div id="upload-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small id="upload-percent-text" class="text-muted">0%</small>
+                        <small id="upload-size-info" class="text-muted"></small>
+                    </div>
+                </div>
                         
                         <div class="d-flex justify-content-end align-items-center mb-2">
                             <button class="btn btn-sm btn-outline-secondary me-2" id="decrease-font-size">A-</button>
@@ -80,10 +126,15 @@
                         </div>
 
                         <div class="mb-3">
-                            <h5 class="log-header" data-bs-toggle="collapse" data-bs-target="#uploadLogCollapse" aria-expanded="true" aria-controls="uploadLogCollapse">
-                                <i class="bi bi-caret-down-fill"></i> {{ lang.upload_log_label }}
-                            </h5>
-                            <div class="collapse show" id="uploadLogCollapse">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="log-header mb-0" data-bs-toggle="collapse" data-bs-target="#uploadLogCollapse" aria-expanded="false" aria-controls="uploadLogCollapse">
+                                    <i class="bi bi-caret-right-fill"></i> {{ lang.upload_log_label }}
+                                </h5>
+                                <button class="btn btn-sm btn-link text-decoration-none" id="toggle-upload-log-btn" data-bs-toggle="collapse" data-bs-target="#uploadLogCollapse">
+                                    {{ lang.show_logs_button }}
+                                </button>
+                            </div>
+                            <div class="collapse" id="uploadLogCollapse">
                                 <div class="position-relative">
                                     <div id="upload-log-container" class="p-3 log-container-box"><code>
                                         {% if upload_log_content %}
@@ -125,6 +176,15 @@
         const uploadLogContainer = document.getElementById('upload-log-container');
         const uploadLogContentElement = uploadLogContainer.querySelector('code');
 
+        const uploadProgressPanel = document.getElementById('upload-progress-panel');
+        const uploadProgressBar = document.getElementById('upload-progress-bar');
+        const uploadPercentText = document.getElementById('upload-percent-text');
+        const uploadFilesInfo = document.getElementById('upload-files-info');
+        const uploadSizeInfo = document.getElementById('upload-size-info');
+        const netSpeedUpText = document.getElementById('net-speed-up');
+        const netSpeedDownText = document.getElementById('net-speed-down');
+        const toggleUploadLogBtn = document.getElementById('toggle-upload-log-btn');
+
         const copyDownloadLogButton = document.getElementById('copy-download-log-button');
         const copyUploadLogButton = document.getElementById('copy-upload-log-button');
         const autoRefreshSwitch = document.getElementById('auto-refresh-switch');
@@ -134,6 +194,14 @@
         let isUserScrolling = false;
         let scrollTimer = null;
         let isTaskCompleted = false;
+
+        function formatSpeed(bytesPerSec) {
+            if (bytesPerSec === 0) return '0 KB/s';
+            const k = 1024;
+            const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+            const i = Math.floor(Math.log(bytesPerSec) / Math.log(k));
+            return parseFloat((bytesPerSec / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
 
         function renderLog(logElement, logContent) {
             if (!logContent) {
@@ -158,6 +226,39 @@
                     renderLog(downloadLogContentElement, data.download_log);
                     renderLog(uploadLogContentElement, data.upload_log);
                     
+                    // Update network speeds
+                    if (data.net_speed) {
+                        netSpeedUpText.textContent = formatSpeed(data.net_speed.up);
+                        netSpeedDownText.textContent = formatSpeed(data.net_speed.down);
+                    }
+
+                    // Update upload progress
+                    if (data.progress && data.status.status === 'uploading') {
+                        uploadProgressPanel.style.display = 'block';
+                        const p = data.progress;
+                        uploadProgressBar.style.width = (p.percent || 0) + '%';
+                        uploadPercentText.textContent = (p.percent || 0) + '%';
+                        
+                        if (p.total_files) {
+                            uploadFilesInfo.textContent = `${p.uploaded_files || 0} / ${p.total_files} {{ lang.files_count_label }}`;
+                        }
+                        
+                        if (p.transferred && p.total) {
+                            uploadSizeInfo.textContent = `${p.transferred} / ${p.total}`;
+                        }
+                    } else if (data.status.status === 'completed') {
+                        uploadProgressPanel.style.display = 'block';
+                        uploadProgressBar.style.width = '100%';
+                        uploadProgressBar.classList.remove('progress-bar-animated');
+                        uploadPercentText.textContent = '100%';
+                    }
+
+                    // Auto-expand upload log if there's an error
+                    if (data.status.status === 'failed' && data.upload_log.includes('error')) {
+                        const bsCollapse = bootstrap.Collapse.getInstance(document.getElementById('uploadLogCollapse'));
+                        if (bsCollapse) bsCollapse.show();
+                    }
+                    
                     // Auto-scroll only if user is not manually scrolling
                     if (!isUserScrolling) {
                         downloadLogContainer.scrollTop = downloadLogContainer.scrollHeight;
@@ -179,7 +280,6 @@
                                 : 'alert alert-danger mt-3';
                             statusDiv.innerHTML = `<i class="bi bi-info-circle"></i> Task ${taskStatus}. Auto-refresh stopped.`;
                             
-                            // Append to whichever log is most relevant or both
                             if (taskStatus === 'failed' && data.status.error) {
                                 const errorDiv = document.createElement('div');
                                 errorDiv.className = 'alert alert-danger mt-3';
@@ -198,6 +298,18 @@
                 console.error('Error fetching logs:', error);
             }
         }
+
+        // Handle upload log toggle text
+        document.getElementById('uploadLogCollapse').addEventListener('show.bs.collapse', () => {
+            toggleUploadLogBtn.textContent = '{{ lang.hide_logs_button }}';
+            const icon = document.querySelector('[data-bs-target="#uploadLogCollapse"] i');
+            icon.classList.replace('bi-caret-right-fill', 'bi-caret-down-fill');
+        });
+        document.getElementById('uploadLogCollapse').addEventListener('hide.bs.collapse', () => {
+            toggleUploadLogBtn.textContent = '{{ lang.show_logs_button }}';
+            const icon = document.querySelector('[data-bs-target="#uploadLogCollapse"] i');
+            icon.classList.replace('bi-caret-down-fill', 'bi-caret-right-fill');
+        });
 
         function startAutoRefresh() {
             if (!intervalId) {

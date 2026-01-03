@@ -16,6 +16,43 @@ from .config import STATUS_DIR, CONFIG_BACKUP_RCLONE_BASE64, CONFIG_BACKUP_REMOT
 
 logger = logging.getLogger(__name__)
 
+import time
+import psutil
+
+# Cache for network speed calculation
+_net_io_cache = {"last_time": time.time(), "last_recv": psutil.net_io_counters().bytes_recv, "last_sent": psutil.net_io_counters().bytes_sent}
+
+def get_net_speed():
+    """Calculates real-time network receive/send speeds (bytes/s)."""
+    global _net_io_cache
+    current_time = time.time()
+    current_io = psutil.net_io_counters()
+    
+    interval = current_time - _net_io_cache["last_time"]
+    if interval <= 0:
+        return 0, 0
+    
+    recv_speed = (current_io.bytes_recv - _net_io_cache["last_recv"]) / interval
+    sent_speed = (current_io.bytes_sent - _net_io_cache["last_sent"]) / interval
+    
+    _net_io_cache.update({
+        "last_time": current_time,
+        "last_recv": current_io.bytes_recv,
+        "last_sent": current_io.bytes_sent
+    })
+    
+    return max(0, recv_speed), max(0, sent_speed)
+
+def count_files_in_dir(directory: Path) -> Dict[str, Any]:
+    """Counts files and total size in a directory."""
+    count = 0
+    total_size = 0
+    for item in directory.rglob("*"):
+        if item.is_file():
+            count += 1
+            total_size += item.stat().st_size
+    return {"count": count, "size": total_size}
+
 # --- Helper Functions ---
 
 def get_task_status_path(task_id: str) -> Path:

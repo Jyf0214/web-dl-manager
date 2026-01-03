@@ -18,7 +18,7 @@ from ..auth import get_current_user
 from ..database import User
 from ..config import BASE_DIR, STATUS_DIR, PROJECT_ROOT
 from ..tasks import process_download_job
-from ..utils import get_task_status_path, update_task_status
+from ..utils import get_task_status_path, update_task_status, get_net_speed
 
 
 router = APIRouter(
@@ -241,11 +241,38 @@ async def get_status_json(task_id: str):
         with open(upload_log_path, "r") as f:
             upload_log = f.read()
             
+    # Parse rclone progress from upload_log if possible
+    progress_data = status_data.get("upload_stats", {})
+    if upload_log and "Transferred:" in upload_log:
+        import re
+        # Look for the last Transferred: ... line
+        transferred_matches = re.findall(r"Transferred:\s+([\d.]+)\s*(\w+)\s*/\s*([\d.]+)\s*(\w+),\s*(\d+)%", upload_log)
+        if transferred_matches:
+            last_match = transferred_matches[-1]
+            progress_data["percent"] = int(last_match[4])
+            progress_data["transferred"] = f"{last_match[0]} {last_match[1]}"
+            progress_data["total"] = f"{last_match[2]} {last_match[3]}"
+        
+        # Check for individual file progress (Transferred: 0 / 1, 0%)
+        file_matches = re.findall(r"Transferred:\s+(\d+)\s*/\s+(\d+),\s*(\d+)%", upload_log)
+        if file_matches:
+            last_file_match = file_matches[-1]
+            progress_data["uploaded_files"] = int(last_file_match[0])
+            progress_data["total_files"] = int(last_file_match[1])
+
+    # Get real-time net speed
+    speed_down, speed_up = get_net_speed()
+            
     return JSONResponse({
         "status": status_data, 
-        "log": download_log,  # For backward compatibility
+        "log": download_log,
         "download_log": download_log,
-        "upload_log": upload_log
+        "upload_log": upload_log,
+        "progress": progress_data,
+        "net_speed": {
+            "up": speed_up,
+            "down": speed_down
+        }
     })
 
 @router.get("/status/{task_id}/raw")
