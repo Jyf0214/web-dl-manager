@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-01-09
+
+### Fixed
+- **Database Fallback**: Resolved a critical issue where the application would crash when falling back to an in-memory SQLite database (due to MySQL connection failure) by ensuring tables are initialized immediately upon fallback.
+
+### Added
+- **Database Maintenance**:
+    - **Cleanup Utility**: Implemented a comprehensive database cleanup function that removes unused tables and obsolete configuration keys from the database.
+    - **Management UI**: Added a "Database Maintenance" section to the settings page, allowing administrators to manually trigger database cleanup directly from the web interface.
+    - **Config Whitelisting**: Introduced a whitelist-based configuration management system to ensure only relevant settings are preserved during cleanup.
+
 ## [1.1.0] - 2026-01-09
 
 ### Added
