@@ -51,14 +51,10 @@ async def lifespan(app: FastAPI):
     if not changelog_file.exists():
         changelog_file.write_text("# Changelog\n\nNo changelog information available yet.", encoding="utf-8")
         
-    # Configure database logging
-    db_handler = MySQLLogHandler()
+    # Configure logging
     debug_enabled = os.getenv("DEBUG_MODE", "false").lower() == "true"
     log_level = logging.DEBUG if debug_enabled else logging.INFO
-    db_handler.setLevel(log_level)
-    logging.getLogger().addHandler(db_handler)
     logging.getLogger().setLevel(log_level)
-    logging.info(f"Database logging configured with {logging.getLevelName(log_level)} level.")
     
     # Ensure logs directory exists
     logs_dir = PROJECT_ROOT / "logs"
