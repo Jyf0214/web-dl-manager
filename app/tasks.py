@@ -28,6 +28,17 @@ logger = logging.getLogger(__name__)
 debug_enabled = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
 
+async def periodic_config_backup():
+    """Periodically backups gallery-dl config to remote storage."""
+    from .utils import backup_gallery_dl_config
+    while True:
+        await asyncio.sleep(600)  # Every 10 minutes
+        try:
+            await backup_gallery_dl_config()
+        except Exception as e:
+            logger.error(f"Error in periodic config backup: {e}")
+
+
 
 
 

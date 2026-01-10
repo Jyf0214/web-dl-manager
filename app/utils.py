@@ -359,30 +359,296 @@ async def _run_rclone_command(command: str, log_file: Optional[Path] = None):
 
 
 async def restore_gallery_dl_config():
+
+
+
+
     """Restore gallery-dl configuration files at startup."""
-    logger.info("Attempting to restore gallery-dl config from rclone remote...")
+
+
+
+
     if not CONFIG_BACKUP_RCLONE_BASE64 or not CONFIG_BACKUP_REMOTE_PATH:
+
+
+
+
         logger.info("Configuration restore not configured. Skipping.")
+
+
+
+
         return
+
+
+
+
+
+
+
+
+
+    logger.info("Attempting to restore gallery-dl config from rclone remote...")
+
+
+
 
     GALLERY_DL_CONFIG_DIR.mkdir(exist_ok=True, parents=True)
 
+
+
+
+
+
+
+
+
     try:
+
+
+
+
         rclone_config_content = base64.b64decode(CONFIG_BACKUP_RCLONE_BASE64).decode('utf-8')
+
+
+
+
     except Exception as e:
+
+
+
+
         logger.error(f"Failed to decode base64 rclone config for restore: {str(e)}")
+
+
+
+
         return
 
+
+
+
+
+
+
+
+
     with tempfile.NamedTemporaryFile(mode='w', suffix='.conf', delete=False) as tmp_file:
+
+
+
+
         tmp_config_path = tmp_file.name
+
+
+
+
         tmp_file.write(rclone_config_content)
 
+
+
+
+
+
+
+
+
     try:
-        rclone_cmd = (f"rclone copy --config \"{tmp_config_path}\" "
-                      f"\"{CONFIG_BACKUP_REMOTE_PATH}\" \"{GALLERY_DL_CONFIG_DIR}\" "
+
+
+
+
+        # Use copy instead of sync to avoid deleting local files if remote is empty
+
+
+
+
+        rclone_cmd = (f"rclone copy \"{CONFIG_BACKUP_REMOTE_PATH}\" \"{GALLERY_DL_CONFIG_DIR}\" "
+
+
+
+
+                      f"--config \"{tmp_config_path}\" "
+
+
+
+
                       f"-P --log-level=INFO")
+
+
+
+
         await _run_rclone_command(rclone_cmd)
+
+
+
+
         logger.info("Finished attempt to restore gallery-dl config.")
+
+
+
+
     finally:
+
+
+
+
         if os.path.exists(tmp_config_path):
+
+
+
+
             os.unlink(tmp_config_path)
+
+
+
+
+
+
+
+
+
+async def backup_gallery_dl_config():
+
+
+
+
+    """Backup gallery-dl configuration files to rclone remote."""
+
+
+
+
+    if not CONFIG_BACKUP_RCLONE_BASE64 or not CONFIG_BACKUP_REMOTE_PATH:
+
+
+
+
+        return
+
+
+
+
+
+
+
+
+
+    if not GALLERY_DL_CONFIG_DIR.exists():
+
+
+
+
+        return
+
+
+
+
+
+
+
+
+
+    logger.info("Backing up gallery-dl config to rclone remote...")
+
+
+
+
+    try:
+
+
+
+
+        rclone_config_content = base64.b64decode(CONFIG_BACKUP_RCLONE_BASE64).decode('utf-8')
+
+
+
+
+    except Exception as e:
+
+
+
+
+        logger.error(f"Failed to decode base64 rclone config for backup: {str(e)}")
+
+
+
+
+        return
+
+
+
+
+
+
+
+
+
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.conf', delete=False) as tmp_file:
+
+
+
+
+        tmp_config_path = tmp_file.name
+
+
+
+
+        tmp_file.write(rclone_config_content)
+
+
+
+
+
+
+
+
+
+    try:
+
+
+
+
+        # Use copy to ensure new tokens/configs are pushed to remote
+
+
+
+
+        rclone_cmd = (f"rclone copy \"{GALLERY_DL_CONFIG_DIR}\" \"{CONFIG_BACKUP_REMOTE_PATH}\" "
+
+
+
+
+                      f"--config \"{tmp_config_path}\" "
+
+
+
+
+                      f"--log-level=INFO")
+
+
+
+
+        await _run_rclone_command(rclone_cmd)
+
+
+
+
+        logger.info("Gallery-dl config backup successful.")
+
+
+
+
+    finally:
+
+
+
+
+        if os.path.exists(tmp_config_path):
+
+
+
+
+            os.unlink(tmp_config_path)
+
+
+

@@ -194,6 +194,10 @@
                             <i class="bi bi-shield-lock"></i> {{ lang.backup_settings_section }}
                         </h5>
                         <div class="mb-3">
+                            <label for="RCLONE_RAW_CONFIG" class="form-label text-primary">{{ lang.rclone_raw_config_label }}</label>
+                            <textarea class="form-control border-primary" id="RCLONE_RAW_CONFIG" rows="3" placeholder="{{ lang.rclone_raw_config_placeholder }}"></textarea>
+                        </div>
+                        <div class="mb-3">
                             <label for="WDM_CONFIG_BACKUP_RCLONE_BASE64" class="form-label">{{ lang.backup_rclone_base64_label }}</label>
                             <textarea class="form-control" id="WDM_CONFIG_BACKUP_RCLONE_BASE64" name="WDM_CONFIG_BACKUP_RCLONE_BASE64" rows="3">{{ config.WDM_CONFIG_BACKUP_RCLONE_BASE64 }}</textarea>
                         </div>
@@ -242,6 +246,20 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Rclone Raw to Base64 conversion
+        document.getElementById('RCLONE_RAW_CONFIG').addEventListener('input', function() {
+            const rawValue = this.value.trim();
+            if (rawValue) {
+                try {
+                    // Use btoa for base64 encoding, handling potential UTF-8 characters properly
+                    const base64Value = btoa(unescape(encodeURIComponent(rawValue)));
+                    document.getElementById('WDM_CONFIG_BACKUP_RCLONE_BASE64').value = base64Value;
+                } catch (e) {
+                    console.error("Base64 conversion failed", e);
+                }
+            }
+        });
+
         document.getElementById('clear-cache-btn').addEventListener('click', async function() {
             const btn = this;
             const statusDiv = document.getElementById('cache-status');
