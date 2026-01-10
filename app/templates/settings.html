@@ -82,6 +82,12 @@
                                     <option value="false" {% if config.DEBUG_MODE != 'true' %}selected{% endif %}>False</option>
                                 </select>
                             </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="WDM_GALLERY_DL_ARGS" class="form-label">{{ lang.gallery_dl_args_label }}</label>
+                            <input type="text" class="form-control" id="WDM_GALLERY_DL_ARGS" name="WDM_GALLERY_DL_ARGS" value="{{ config.WDM_GALLERY_DL_ARGS }}" placeholder="{{ lang.gallery_dl_args_placeholder }}">
+                            <div class="form-text">{{ lang.gallery_dl_args_text }}</div>
+                        </div>
                         <div class="mb-3">
                             <label for="REDIS_URL" class="form-label">{{ lang.redis_url_label }}</label>
                             <input type="text" class="form-control" id="REDIS_URL" name="REDIS_URL" value="{{ config.REDIS_URL }}" placeholder="rediss://:password@endpoint:port">
@@ -212,6 +218,37 @@
                         <div class="mb-3">
                             <label for="WDM_CONFIG_BACKUP_REMOTE_PATH" class="form-label">{{ lang.backup_remote_path_label }}</label>
                             <input type="text" class="form-control" id="WDM_CONFIG_BACKUP_REMOTE_PATH" name="WDM_CONFIG_BACKUP_REMOTE_PATH" value="{{ config.WDM_CONFIG_BACKUP_REMOTE_PATH }}" placeholder="remote:config-backup/gallery-dl">
+                        </div>
+                    </div>
+
+                    <!-- Verification Settings -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2 mb-3">
+                            <i class="bi bi-shield-check"></i> {{ lang.verification_settings_section }}
+                        </h5>
+                        <div class="mb-3">
+                            <label for="WDM_VERIFICATION_TYPE" class="form-label">{{ lang.verification_type_label }}</label>
+                            <select class="form-select" id="WDM_VERIFICATION_TYPE" name="WDM_VERIFICATION_TYPE">
+                                <option value="none" {% if config.WDM_VERIFICATION_TYPE == 'none' %}selected{% endif %}>{{ lang.verification_none }}</option>
+                                <option value="local" {% if config.WDM_VERIFICATION_TYPE == 'local' %}selected{% endif %}>{{ lang.verification_local }}</option>
+                                <option value="cloudflare" {% if config.WDM_VERIFICATION_TYPE == 'cloudflare' %}selected{% endif %}>{{ lang.verification_cloudflare }}</option>
+                                <option value="google" {% if config.WDM_VERIFICATION_TYPE == 'google' %}selected{% endif %}>{{ lang.verification_google }}</option>
+                                <option value="geetest" {% if config.WDM_VERIFICATION_TYPE == 'geetest' %}selected{% endif %}>{{ lang.verification_geetest }}</option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="WDM_VERIFICATION_SITE_KEY" class="form-label">{{ lang.verification_site_key_label }}</label>
+                                <input type="text" class="form-control" id="WDM_VERIFICATION_SITE_KEY" name="WDM_VERIFICATION_SITE_KEY" value="{{ config.WDM_VERIFICATION_SITE_KEY }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="WDM_VERIFICATION_SECRET_KEY" class="form-label">{{ lang.verification_secret_key_label }}</label>
+                                <input type="password" class="form-control" id="WDM_VERIFICATION_SECRET_KEY" name="WDM_VERIFICATION_SECRET_KEY" value="{{ config.WDM_VERIFICATION_SECRET_KEY }}">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="WDM_VERIFICATION_ID" class="form-label">{{ lang.verification_id_label }}</label>
+                            <input type="text" class="form-control" id="WDM_VERIFICATION_ID" name="WDM_VERIFICATION_ID" value="{{ config.WDM_VERIFICATION_ID }}">
                         </div>
                     </div>
 
