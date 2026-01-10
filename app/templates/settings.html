@@ -215,6 +215,32 @@
                         </div>
                     </div>
 
+                    <!-- Custom Sync Task Settings -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2 mb-3">
+                            <i class="bi bi-clock-history"></i> {{ lang.custom_sync_settings_section }}
+                        </h5>
+                        <div class="mb-3">
+                            <label for="WDM_CUSTOM_SYNC_ENABLED" class="form-label">{{ lang.custom_sync_enabled_label }}</label>
+                            <select class="form-select" id="WDM_CUSTOM_SYNC_ENABLED" name="WDM_CUSTOM_SYNC_ENABLED">
+                                <option value="true" {% if config.WDM_CUSTOM_SYNC_ENABLED == 'true' %}selected{% endif %}>True</option>
+                                <option value="false" {% if config.WDM_CUSTOM_SYNC_ENABLED != 'true' %}selected{% endif %}>False</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="WDM_CUSTOM_SYNC_LOCAL_PATH" class="form-label">{{ lang.custom_sync_local_path_label }}</label>
+                            <input type="text" class="form-control" id="WDM_CUSTOM_SYNC_LOCAL_PATH" name="WDM_CUSTOM_SYNC_LOCAL_PATH" value="{{ config.WDM_CUSTOM_SYNC_LOCAL_PATH }}" placeholder="{{ lang.custom_sync_local_path_placeholder }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="WDM_CUSTOM_SYNC_REMOTE_PATH" class="form-label">{{ lang.custom_sync_remote_path_label }}</label>
+                            <input type="text" class="form-control" id="WDM_CUSTOM_SYNC_REMOTE_PATH" name="WDM_CUSTOM_SYNC_REMOTE_PATH" value="{{ config.WDM_CUSTOM_SYNC_REMOTE_PATH }}" placeholder="{{ lang.custom_sync_remote_path_placeholder }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="WDM_CUSTOM_SYNC_INTERVAL" class="form-label">{{ lang.custom_sync_interval_label }}</label>
+                            <input type="number" class="form-control" id="WDM_CUSTOM_SYNC_INTERVAL" name="WDM_CUSTOM_SYNC_INTERVAL" value="{{ config.WDM_CUSTOM_SYNC_INTERVAL }}" placeholder="60">
+                        </div>
+                    </div>
+
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                         <a href="/downloader" class="btn btn-outline-secondary me-md-2">{{ lang.back_to_downloader }}</a>
                         <button type="submit" class="btn btn-primary">

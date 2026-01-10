@@ -38,6 +38,54 @@ async def periodic_config_backup():
         except Exception as e:
             logger.error(f"Error in periodic config backup: {e}")
 
+async def periodic_custom_sync():
+    """Periodically syncs a custom local path to a remote storage via rclone."""
+    from .utils import _run_rclone_command
+    import base64
+    import tempfile
+    
+    while True:
+        enabled = db_config.get_config("WDM_CUSTOM_SYNC_ENABLED", "false").lower() == "true"
+        local_path = db_config.get_config("WDM_CUSTOM_SYNC_LOCAL_PATH")
+        remote_path = db_config.get_config("WDM_CUSTOM_SYNC_REMOTE_PATH")
+        interval_min = db_config.get_config("WDM_CUSTOM_SYNC_INTERVAL", "60")
+        rclone_base64 = db_config.get_config("WDM_CONFIG_BACKUP_RCLONE_BASE64")
+        
+        try:
+            interval = int(interval_min) * 60
+            if interval < 60: interval = 60 # Min 1 minute
+        except ValueError:
+            interval = 3600
+
+        if enabled and local_path and remote_path and rclone_base64:
+            if os.path.exists(local_path):
+                logger.info(f"[Custom Sync] Starting scheduled sync task: {local_path} -> {remote_path}")
+                try:
+                    rclone_config_content = base64.b64decode(rclone_base64).decode('utf-8')
+                    with tempfile.NamedTemporaryFile(mode='w', suffix='.conf', delete=False) as tmp_file:
+                        tmp_config_path = tmp_file.name
+                        tmp_file.write(rclone_config_content)
+                    
+                    try:
+                        rclone_cmd = (f"rclone copy \"{local_path}\" \"{remote_path}\" "
+                                      f"--config \"{tmp_config_path}\" "
+                                      f"--log-level=INFO")
+                        # 运行并捕获结果
+                        success = await _run_rclone_command(rclone_cmd)
+                        if success:
+                            logger.info(f"[Custom Sync] Success: Synced {local_path} to {remote_path}")
+                        else:
+                            logger.error(f"[Custom Sync] Failed: Rclone execution error during sync.")
+                    finally:
+                        if os.path.exists(tmp_config_path):
+                            os.unlink(tmp_config_path)
+                except Exception as e:
+                    logger.error(f"[Custom Sync] Error during sync: {e}")
+            else:
+                logger.warning(f"[Custom Sync] Local path does not exist: {local_path}")
+        
+        await asyncio.sleep(interval)
+
 
 
 
