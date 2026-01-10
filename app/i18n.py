@@ -148,6 +148,8 @@ LANGUAGES = {
         "terminal_confirm_risk": "I understand the risks and want to enable the terminal",
         "terminal_enable_button": "Enable Terminal",
         "terminal_enabled_config_label": "Enable Web Terminal",
+        "terminal_reconnect_button": "Reconnect",
+        "terminal_status_disconnected": "Disconnected",
         "back_to_downloader": "Back to Downloader",
     },
     "zh": {
@@ -287,6 +289,8 @@ LANGUAGES = {
         "terminal_confirm_risk": "我已了解风险，并确认开启终端",
         "terminal_enable_button": "开启终端",
         "terminal_enabled_config_label": "启用网页终端",
+        "terminal_reconnect_button": "重新连接",
+        "terminal_status_disconnected": "已断开连接",
         "password_changed_success": "密码修改成功。",
         "current_password_incorrect": "当前密码不正确。",
         "passwords_not_match": "新密码和确认密码不匹配。",
