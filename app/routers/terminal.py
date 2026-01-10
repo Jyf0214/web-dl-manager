@@ -62,7 +62,10 @@ async def terminal_websocket(websocket: WebSocket):
     # 启动伪终端进程
     # 设置 TERM 环境变量以便支持颜色和复杂 UI
     try:
-        process = PtyProcessUnicode.spawn([shell], env={{**os.environ, "TERM": "xterm-256color"}})
+        # 确保所有环境变量都是字符串
+        env = {str(k): str(v) for k, v in os.environ.items()}
+        env["TERM"] = "xterm-256color"
+        process = PtyProcessUnicode.spawn([shell], env=env)
     except Exception as e:
         logging.error(f"Failed to spawn shell: {e}")
         await websocket.send_text(f"\r\nFailed to spawn shell: {e}\r\n")
