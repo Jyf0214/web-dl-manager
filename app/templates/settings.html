@@ -116,20 +116,24 @@
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">{{ lang.cloudflared_token_label }}</label>
                                     <input type="text" class="form-control" name="TUNNEL_TOKEN" value="{{ config.TUNNEL_TOKEN }}">
+                                    <div class="form-text x-small">{{ lang.cloudflared_token_text }}</div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">{{ lang.login_domain_label }}</label>
                                     <input type="text" class="form-control" name="login_domain" value="{{ config.login_domain }}">
+                                    <div class="form-text x-small">{{ lang.login_domain_text }}</div>
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">{{ lang.avatar_url_label }}</label>
                                     <input type="text" class="form-control" name="AVATAR_URL_INPUT" value="{{ config.AVATAR_URL }}">
+                                    <div class="form-text x-small">{{ lang.avatar_url_text }}</div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">{{ lang.github_token_label }}</label>
                                     <input type="password" class="form-control" name="GITHUB_TOKEN" value="{{ config.GITHUB_TOKEN }}">
+                                    <div class="form-text x-small">{{ lang.github_token_text }}</div>
                                 </div>
                             </div>
                             <div class="row">
@@ -139,6 +143,7 @@
                                         <option value="true" {% if config.PRIVATE_MODE == 'true' %}selected{% endif %}>True</option>
                                         <option value="false" {% if config.PRIVATE_MODE != 'true' %}selected{% endif %}>False</option>
                                     </select>
+                                    <div class="form-text x-small">{{ lang.private_mode_text }}</div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">{{ lang.get('terminal_enabled_config_label', 'Terminal Enabled') }}</label>
@@ -146,6 +151,7 @@
                                         <option value="true" {% if config.TERMINAL_ENABLED == 'true' %}selected{% endif %}>True</option>
                                         <option value="false" {% if config.TERMINAL_ENABLED != 'true' %}selected{% endif %}>False</option>
                                     </select>
+                                    <div class="form-text x-small">{{ lang.terminal_enabled_text }}</div>
                                 </div>
                             </div>
                             <div class="row">
@@ -153,17 +159,20 @@
                                     <label class="form-label">{{ lang.debug_mode_label }}</label>
                                     <select class="form-select" name="DEBUG_MODE">
                                         <option value="true" {% if config.DEBUG_MODE == 'true' %}selected{% endif %}>True</option>
-                                        <option value="false" {% if config.DEBUG_MODE != 'true' %}selected{% endif %}>False</option>
+                                        <option value="false" {% if config.DEBUG_MODE != 'true' %}selected{% endif %}/False</option>
                                     </select>
+                                    <div class="form-text x-small">{{ lang.debug_mode_text }}</div>
                                 </div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">{{ lang.gallery_dl_args_label }}</label>
                                 <input type="text" class="form-control" name="WDM_GALLERY_DL_ARGS" value="{{ config.WDM_GALLERY_DL_ARGS }}" placeholder="{{ lang.gallery_dl_args_placeholder }}">
+                                <div class="form-text x-small">{{ lang.gallery_dl_args_text }}</div>
                             </div>
                             <div class="mb-0">
                                 <label class="form-label">{{ lang.redis_url_label }}</label>
                                 <input type="text" class="form-control" name="REDIS_URL" value="{{ config.REDIS_URL }}">
+                                <div class="form-text x-small">{{ lang.redis_url_text }}</div>
                             </div>
                         </div>
                     </div>
@@ -369,7 +378,7 @@
                 item.innerHTML = `
                     <div class="row align-items-center mb-2">
                         <div class="col-8 col-md-10">
-                            <input type="text" class="form-control form-control-sm fw-bold border-0 bg-transparent p-0" value="${task.name || ''}" onchange="updateTask(${index}, 'name', this.value)" placeholder="Task Name">
+                            <input type="text" class="form-control form-control-sm fw-bold border-0 bg-transparent p-0" value="${task.name || ''}" onchange="updateTask(${index}, 'name', this.value)" placeholder="{{ lang.sync_task_name_label }}">
                         </div>
                         <div class="col-4 col-md-2 text-end">
                             <button type="button" class="btn btn-link text-danger btn-sm p-0" onclick="removeTask(${index})"><i class="bi bi-trash"></i></button>
@@ -377,21 +386,21 @@
                     </div>
                     <div class="row g-2">
                         <div class="col-md-5">
-                            <label class="form-label small mb-1">Local Path</label>
+                            <label class="form-label small mb-1">{{ lang.custom_sync_local_path_label }}</label>
                             <input type="text" class="form-control form-control-sm" value="${task.local_path || ''}" onchange="updateTask(${index}, 'local_path', this.value)">
                         </div>
                         <div class="col-md-5">
-                            <label class="form-label small mb-1">Remote Path</label>
+                            <label class="form-label small mb-1">{{ lang.custom_sync_remote_path_label }}</label>
                             <input type="text" class="form-control form-control-sm" value="${task.remote_path || ''}" onchange="updateTask(${index}, 'remote_path', this.value)">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label small mb-1">Min</label>
+                            <label class="form-label small mb-1">{{ lang.custom_sync_interval_label }} (Min)</label>
                             <input type="number" class="form-control form-control-sm" value="${task.interval || 60}" onchange="updateTask(${index}, 'interval', parseInt(this.value))">
                         </div>
                     </div>
                     <div class="form-check form-switch mt-2">
                         <input class="form-check-input" type="checkbox" ${task.enabled ? 'checked' : ''} onchange="updateTask(${index}, 'enabled', this.checked)">
-                        <label class="form-check-label small">Enabled</label>
+                        <label class="form-check-label small">{{ lang.custom_sync_enabled_label }}</label>
                     </div>
                 `;
                 container.appendChild(item);
@@ -434,15 +443,16 @@
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> {{ lang.cleaning_placeholder }}';
             try {
                 const res = await fetch(endpoint, { method: 'POST' });
-                if (res.ok) {
-                    status.className = 'mt-2 small text-success';
-                    status.innerHTML = '<i class="bi bi-check-circle"></i> Success';
-                    setTimeout(() => status.innerHTML = '', 3000);
-                }
-            } catch (e) {
-                status.className = 'mt-2 small text-danger';
-                status.innerHTML = '<i class="bi bi-exclamation-circle"></i> Error';
-            } finally {
+                                if (res.ok) {
+                                    status.className = 'mt-2 small text-success';
+                                    status.innerHTML = '<i class="bi bi-check-circle"></i> {{ lang.cache_cleared_success if lang.cache_cleared_success else "Success" }}';
+                                    setTimeout(() => status.innerHTML = '', 3000);
+                                }
+                            } catch (e) {
+                                status.className = 'mt-2 small text-danger';
+                                status.innerHTML = '<i class="bi bi-exclamation-circle"></i> {{ lang.error_prefix if lang.error_prefix else "Error" }}';
+                            }
+                 finally {
                 btn.disabled = false;
                 btn.innerHTML = originalHtml;
             }

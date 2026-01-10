@@ -145,7 +145,7 @@
                         <h6 class="fw-bold mb-3 small uppercase text-primary">Limits & Connectivity</h6>
                         <div class="row g-2 mb-3">
                             <div class="col-6">
-                                <label class="form-label small mb-1">Download Limit</label>
+                                <label class="form-label small mb-1">{{ lang.rate_limit_label }}</label>
                                 <div id="gallery-dl-rate-limit-container">
                                     <input type="text" class="form-control form-control-sm" id="rate_limit" name="rate_limit" value="2M">
                                 </div>
@@ -153,15 +153,18 @@
                                     <input type="number" step="0.1" class="form-control form-control-sm" id="mega_rate_limit" value="5">
                                     <input type="hidden" id="final_rate_limit" name="rate_limit">
                                 </div>
+                                <div class="form-text x-small text-muted mt-1">{{ lang.rate_limit_text }}</div>
                             </div>
                             <div class="col-6">
-                                <label class="form-label small mb-1">Upload Limit</label>
+                                <label class="form-label small mb-1">{{ lang.upload_rate_limit_text }}</label>
                                 <input type="text" class="form-control form-control-sm" name="upload_rate_limit" value="1M">
+                                <div class="form-text x-small text-muted mt-1">{{ lang.upload_rate_limit_text }}</div>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label small mb-1">Proxy URL (Optional)</label>
+                            <label class="form-label small mb-1">{{ lang.proxy_label }}</label>
                             <input type="text" class="form-control form-control-sm" id="proxy" name="proxy" placeholder="http://user:pass@host:port">
+                            <div class="form-text x-small text-muted mt-1">{{ lang.proxy_text }}</div>
                         </div>
                         <div class="form-check form-switch mb-2">
                             <input class="form-check-input" type="checkbox" id="auto_proxy" name="auto_proxy" value="true">
@@ -175,11 +178,11 @@
                         <div class="d-flex flex-wrap gap-3 mb-3">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="enable_compression" name="enable_compression" value="true" checked>
-                                <label class="form-check-label small" for="enable_compression">Compress Files</label>
+                                <label class="form-check-label small" for="enable_compression">{{ lang.enable_compression_label }}</label>
                             </div>
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="split_compression" name="split_compression" value="true">
-                                <label class="form-check-label small" for="split_compression">Split Large</label>
+                                <label class="form-check-label small" for="split_compression">{{ lang.split_compression_label }}</label>
                             </div>
                         </div>
                         <div id="split-size-container" class="mb-3" style="display: none;">
@@ -223,7 +226,7 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="h5 fw-bold mb-0">System Dashboard</h2>
                 <button class="btn btn-link btn-sm text-decoration-none" onclick="toggleServerStatus()">
-                    <i class="bi bi-graph-up-arrow me-1"></i> Toggle Monitor
+                    <i class="bi bi-graph-up-arrow me-1"></i> {{ lang.toggle_monitor_button }}
                 </button>
             </div>
             
@@ -231,14 +234,14 @@
                 <div class="row g-3 mb-4">
                     <div class="col-md-4">
                         <div class="status-pill">
-                            <div class="text-muted x-small uppercase mb-1">CPU Usage</div>
+                            <div class="text-muted x-small uppercase mb-1">{{ lang.cpu_usage_label }}</div>
                             <div class="h4 fw-bold mb-2"><span id="cpu-percent">0</span>%</div>
                             <div class="progress"><div id="cpu-progress" class="progress-bar" role="progressbar"></div></div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="status-pill">
-                            <div class="text-muted x-small uppercase mb-1">Memory</div>
+                            <div class="text-muted x-small uppercase mb-1">{{ lang.memory_label }}</div>
                             <div class="h4 fw-bold mb-2"><span id="mem-percent">0</span>%</div>
                             <div class="progress"><div id="mem-progress" class="progress-bar" role="progressbar"></div></div>
                             <div class="x-small text-muted mt-2"><span id="mem-used">0</span> / <span id="mem-total">0</span> GB</div>
@@ -246,7 +249,7 @@
                     </div>
                     <div class="col-md-4">
                         <div class="status-pill">
-                            <div class="text-muted x-small uppercase mb-1">Disk Usage</div>
+                            <div class="text-muted x-small uppercase mb-1">{{ lang.disk_usage_label }}</div>
                             <div class="h4 fw-bold mb-2"><span id="disk-percent">0</span>%</div>
                             <div class="progress"><div id="disk-progress" class="progress-bar" role="progressbar"></div></div>
                             <div class="x-small text-muted mt-2"><span id="disk-used">0</span> / <span id="disk-total">0</span> GB</div>
@@ -256,13 +259,13 @@
                 <div class="row g-3">
                     <div class="col-6 col-md-3">
                         <div class="status-pill p-3">
-                            <div class="x-small text-muted">Active Tasks</div>
+                            <div class="x-small text-muted">{{ lang.active_tasks_label }}</div>
                             <div class="fw-bold h5 mb-0" id="active-tasks">0</div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="status-pill p-3">
-                            <div class="x-small text-muted">Uptime</div>
+                            <div class="x-small text-muted">{{ lang.uptime_label }}</div>
                             <div class="fw-bold h5 mb-0" id="uptime">0d 0h</div>
                         </div>
                     </div>

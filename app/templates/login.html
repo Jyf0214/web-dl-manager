@@ -105,12 +105,12 @@
 
         <form action="/login" method="post" id="login-form">
             <div class="mb-3 text-start">
-                <label for="username" class="form-label px-1">Username</label>
-                <input type="text" class="form-control form-control-lg" id="username" name="username" required placeholder="Enter username">
+                <label for="username" class="form-label px-1">{{ lang.username_label if lang.username_label else 'Username' }}</label>
+                <input type="text" class="form-control form-control-lg" id="username" name="username" required placeholder="{{ lang.username_placeholder if lang.username_placeholder else 'Enter username' }}">
             </div>
             <div class="mb-4 text-start">
-                <label for="password" class="form-label px-1">Password</label>
-                <input type="password" class="form-control form-control-lg" id="password" name="password" placeholder="Enter password">
+                <label for="password" class="form-label px-1">{{ lang.password_label if lang.password_label else 'Password' }}</label>
+                <input type="password" class="form-control form-control-lg" id="password" name="password" placeholder="{{ lang.password_placeholder if lang.password_placeholder else 'Enter password' }}">
             </div>
 
             <!-- Verification Widget -->
