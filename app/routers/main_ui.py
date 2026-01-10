@@ -120,6 +120,7 @@ async def settings_page(request: Request, current_user: User = Depends(get_curre
         "WDM_CONFIG_BACKUP_RCLONE_BASE64", "WDM_CONFIG_BACKUP_REMOTE_PATH",
         "WDM_CUSTOM_SYNC_ENABLED", "WDM_CUSTOM_SYNC_LOCAL_PATH", "WDM_CUSTOM_SYNC_REMOTE_PATH", "WDM_CUSTOM_SYNC_INTERVAL",
         "WDM_VERIFICATION_TYPE", "WDM_VERIFICATION_SITE_KEY", "WDM_VERIFICATION_SECRET_KEY", "WDM_VERIFICATION_ID",
+        "WDM_VERIFICATION_GEETEST_DEMO_TYPE",
         "WDM_GALLERY_DL_ARGS",
         "AVATAR_URL", "login_domain", "PRIVATE_MODE", "DEBUG_MODE", "GITHUB_TOKEN",
         "REDIS_URL", "TERMINAL_ENABLED"
@@ -158,6 +159,7 @@ async def save_settings(
         "WDM_CONFIG_BACKUP_RCLONE_BASE64", "WDM_CONFIG_BACKUP_REMOTE_PATH",
         "WDM_CUSTOM_SYNC_ENABLED", "WDM_CUSTOM_SYNC_LOCAL_PATH", "WDM_CUSTOM_SYNC_REMOTE_PATH", "WDM_CUSTOM_SYNC_INTERVAL",
         "WDM_VERIFICATION_TYPE", "WDM_VERIFICATION_SITE_KEY", "WDM_VERIFICATION_SECRET_KEY", "WDM_VERIFICATION_ID",
+        "WDM_VERIFICATION_GEETEST_DEMO_TYPE",
         "WDM_GALLERY_DL_ARGS",
         "AVATAR_URL", "login_domain", "PRIVATE_MODE", "DEBUG_MODE", "GITHUB_TOKEN",
         "REDIS_URL", "TERMINAL_ENABLED"
@@ -309,9 +311,13 @@ async def post_setup_form_main(
 
 # The main app also has a login form, but it's only used for re-authentication if the session expires.
 # It does not perform setup or first-time login.
-async def fetch_geetest_v3_demo():
+async def fetch_geetest_v3_demo(demo_type="slide"):
     """Fetches GeeTest V3 demo configuration from official site."""
-    url = f"https://www.geetest.com/demo/gt/register-slide?t={int(time.time() * 1000)}"
+    # Ensure valid type
+    if demo_type not in ["slide", "click", "fullpage"]:
+        demo_type = "slide"
+        
+    url = f"https://www.geetest.com/demo/gt/register-{demo_type}?t={int(time.time() * 1000)}"
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             headers = {"Referer": "https://www.geetest.com/demo/"}
@@ -319,7 +325,7 @@ async def fetch_geetest_v3_demo():
             if res.status_code == 200:
                 return res.json()
     except Exception as e:
-        print(f"Failed to fetch geetest demo: {e}")
+        print(f"Failed to fetch geetest demo ({demo_type}): {e}")
     return None
 
 @router.get("/login", response_class=HTMLResponse, dependencies=None) # No auth dependency for the login page itself
@@ -332,13 +338,14 @@ async def get_login_form_main(request: Request):
     v_type = db_config.get_config("WDM_VERIFICATION_TYPE", "none")
     v_site_key = db_config.get_config("WDM_VERIFICATION_SITE_KEY", "")
     v_geetest_id = db_config.get_config("WDM_VERIFICATION_ID", "")
+    v_geetest_demo_type = db_config.get_config("WDM_VERIFICATION_GEETEST_DEMO_TYPE", "slide")
     
     # Apply Demo keys if missing
     v_gt_v3_config = None
     if v_type in DEMO_KEYS and not v_site_key:
         v_site_key = DEMO_KEYS[v_type]["site"]
     elif v_type == "geetest" and not v_geetest_id:
-        v_gt_v3_config = await fetch_geetest_v3_demo()
+        v_gt_v3_config = await fetch_geetest_v3_demo(v_geetest_demo_type)
     
     math_challenge = ""
     if v_type == "local":
@@ -479,7 +486,7 @@ async def login_main(request: Request, username: str = Form(...), password: str 
             from ..utils import generate_math_challenge
             m_challenge = generate_math_challenge(request)
         elif v_type == "geetest" and not db_config.get_config("WDM_VERIFICATION_ID"):
-            v_gt_v3_config = await fetch_geetest_v3_demo()
+            v_gt_v3_config = await fetch_geetest_v3_demo(db_config.get_config("WDM_VERIFICATION_GEETEST_DEMO_TYPE", "slide"))
             
         return templates.TemplateResponse("login.html", {
             "request": request, 
