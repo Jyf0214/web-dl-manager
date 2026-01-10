@@ -9,6 +9,7 @@ import tempfile
 import logging
 from pathlib import Path
 from typing import Optional, Dict, Any, List
+from fastapi import Request
 
 from . import openlist
 from .database import db_config
@@ -665,6 +666,3 @@ async def backup_gallery_dl_config():
 
 
             os.unlink(tmp_config_path)
-
-
-
