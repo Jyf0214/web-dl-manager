@@ -204,6 +204,12 @@ LANGUAGES = {
         "terminal_reconnect_button": "Reconnect",
         "terminal_status_disconnected": "Disconnected",
         "back_to_downloader": "Back to Downloader",
+        "updates_title": "Updates",
+        "logout_label": "Logout",
+        "login_label": "Login",
+        "add_to_home_screen": "Add to Home Screen",
+        "pwa_install_msg": "Add this site to your home screen for a better experience",
+        "pwa_already_installed": "Already installed or not supported",
     },
     "zh": {
         "app_title": "Web-DL-Manager",
@@ -410,7 +416,12 @@ LANGUAGES = {
         "logging_in": "正在登录...",
         "user_not_found": "用户不存在",
         "password_incorrect": "密码错误",
-
+        "updates_title": "更新记录",
+        "logout_label": "退出登录",
+        "login_label": "登录",
+        "add_to_home_screen": "添加到主屏幕",
+        "pwa_install_msg": "将本站添加到主屏幕，以获得更好的体验",
+        "pwa_already_installed": "已安装或浏览器不支持",
     }
 }
 
