@@ -481,9 +481,9 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
                 logger.debug(f"[WORKFLOW] 代理设置: {proxy if proxy else '无'}")
                 logger.debug(f"[WORKFLOW] 速度限制: {params.get('rate_limit', '无')}")
 
-            # Auto-switch to kemono-dl for specific sites when uncompressed upload is requested
+            # Use kemono-dl if explicitly selected or automatically for specific sites when uncompressed
             is_kemono_site = any(domain in url for domain in ["kemono.cr", "kemono.su", "coomer.st", "coomer.su"])
-            if is_kemono_site and not enable_compression:
+            if downloader == "kemono-dl" or (is_kemono_site and not enable_compression):
                 if debug_enabled:
                     logger.debug(f"[WORKFLOW] 自动切换到 kemono-dl 引擎处理 {url}")
                 
