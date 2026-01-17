@@ -49,10 +49,9 @@ async def process_kemono_pro_job(task_id: str, service: str, creator_id: str, up
             
             cmd = ["python3", "-m", "kemono_dl", "--path", str(task_download_dir), url]
             
-            # Use specific output template to match original style: [Date] [Title]--Filename
-            # kemono-dl templates: {published} for date, {title} for title, {filename} for original name
-            # Note: We use a flattened structure as we did before
-            cmd.extend(["--output", "[{published}] [{title}]--{filename}"])
+            # Use hierarchical structure with creator name and post title as requested
+            # Note: post_name is not available in kemono-dl, using post_title instead
+            cmd.extend(["--output", "{service}/{creator_name}/{post_title}/{filename}"])
 
             if cookies:
                 cookie_file = create_netscape_cookies(cookies)
