@@ -771,30 +771,38 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
 
 async def fetch_kemono_posts(service: str, user_id: str, session):
     """Asynchronously fetch all post metadata for a creator using cloudscraper."""
-    from .utils import API_BASE_URL
+    API_BASE = "https://kemono.cr/api/v1"
     all_posts, offset = [], 0
-    api_url = f"{API_BASE_URL}/{service}/user/{user_id}/posts"
+    api_url = f"{API_BASE}/{service}/user/{user_id}/posts"
     
     while True:
-        try:
-            request_url = f"{api_url}?o={offset}"
-            # Run in thread because cloudscraper/requests is blocking
-            response = await asyncio.to_thread(session.get, request_url, timeout=30)
-            response.raise_for_status()
-            data = response.json()
-            posts_chunk = data if isinstance(data, list) else data.get('results', [])
-            if not isinstance(posts_chunk, list) or not posts_chunk:
+        success = False
+        for attempt in range(5):
+            try:
+                request_url = f"{api_url}?o={offset}"
+                response = await asyncio.to_thread(session.get, request_url, timeout=30)
+                response.raise_for_status()
+                data = response.json()
+                posts_chunk = data if isinstance(data, list) else data.get('results', [])
+                if not isinstance(posts_chunk, list) or not posts_chunk:
+                    return all_posts
+                all_posts.extend(posts_chunk)
+                offset += len(posts_chunk)
+                success = True
+                if len(posts_chunk) < 50:
+                    return all_posts
                 break
-            all_posts.extend(posts_chunk)
-            offset += 50
-            if len(posts_chunk) < 50:
-                break
-        except Exception as e:
-            logger.error(f"[KemonoPro] Failed to fetch posts: {e}")
+            except Exception as e:
+                logger.error(f"[KemonoPro] Attempt {attempt+1} failed for offset {offset}: {e}")
+                if attempt < 4:
+                    await asyncio.sleep(5 * (attempt + 1))
+                else:
+                    return all_posts
+        if not success:
             break
     return all_posts
 
-async def process_kemono_pro_job(task_id: str, service: str, creator_id: str, upload_service: str, upload_path: str, params: dict):
+async def process_kemono_pro_job(task_id: str, service: str, creator_id: str, upload_service: str, upload_path: str, params: dict, cookies: Optional[str] = None):
     """Main background task for Kemono DL Pro."""
     from .utils import SITE_BASE_URL, sanitize_filename, download_file
     import uuid
@@ -808,7 +816,35 @@ async def process_kemono_pro_job(task_id: str, service: str, creator_id: str, up
         update_task_status(task_id, {"status": "running", "url": f"{service}/{creator_id} (Pro)"})
         
         try:
-            scraper = cloudscraper.create_scraper()
+            # Use a more realistic browser emulation
+            scraper = cloudscraper.create_scraper(
+                browser={
+                    'browser': 'chrome',
+                    'platform': 'windows',
+                    'desktop': True
+                }
+            )
+            # Add standard browser headers
+            scraper.headers.update({
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+                'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
+                'Referer': 'https://kemono.cr/artists',
+                'Accept': 'application/json, text/plain, */*'
+            })
+
+            # Inject cookies if provided
+            if cookies:
+                try:
+                    cookie_dict = {}
+                    for cookie in cookies.split(';'):
+                        if '=' in cookie:
+                            name, value = cookie.strip().split('=', 1)
+                            cookie_dict[name] = value
+                    scraper.cookies.update(cookie_dict)
+                    logger.info(f"[KemonoPro] Injected {len(cookie_dict)} cookies.")
+                except Exception as e:
+                    logger.error(f"[KemonoPro] Failed to parse cookies: {e}")
+            
             posts = await fetch_kemono_posts(service, creator_id, scraper)
             
             with open(status_file, "w") as f:
@@ -824,10 +860,10 @@ async def process_kemono_pro_job(task_id: str, service: str, creator_id: str, up
                     filename = sanitize_filename(attachment.get('name'))
                     filepath = attachment.get('path')
                     if filename and filepath:
-                        # Target structure: [Date] [Title]--Filename
-                        final_name = f"[{post_date}] [{post_title[:50]}]--{filename}"
+                        # Try coomer.su first, then kemono.cr for downloads
                         tasks_to_download.append({
-                            "url": SITE_BASE_URL + filepath,
+                            "url": "https://coomer.su" + filepath,
+                            "fallback_url": "https://kemono.cr" + filepath,
                             "dest": task_download_dir / final_name
                         })
             
@@ -837,6 +873,10 @@ async def process_kemono_pro_job(task_id: str, service: str, creator_id: str, up
             completed_count = 0
             for dl_task in tasks_to_download:
                 success = await asyncio.to_thread(download_file, dl_task["url"], dl_task["dest"], scraper)
+                if not success:
+                    # Try fallback
+                    success = await asyncio.to_thread(download_file, dl_task["fallback_url"], dl_task["dest"], scraper)
+                
                 completed_count += 1
                 update_task_status(task_id, {"progress_count": f"{completed_count}/{total_files}"})
                 with open(status_file, "a") as f:

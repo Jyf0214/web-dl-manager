@@ -1,9 +1,0 @@
-Starting job test-task-123 for URL: https://kemono.cr/patreon/user/28444363/post/148258017
-
-[MOCK] Executed: gallery-dl --verbose -D /root/web-dl-manager/app/tmp/data/downloads/test-task-123 -o extractor.kemono.directory="{username}/{title}" https://kemono.cr/patreon/user/28444363/post/148258017
-
-Job completed successfully (compression disabled).
-
---- Cleaning up task resources... ---
-Removed directory: /root/web-dl-manager/app/tmp/data/downloads/test-task-123
-Cleanup complete.

@@ -215,6 +215,9 @@ LANGUAGES = {
         "creator_id_label": "Creator ID",
         "service_label": "Service",
         "fetch_posts_button": "Fetch Posts & Start",
+        "cookies_label": "Cookies (Optional)",
+        "cookies_placeholder": "Paste cookies to bypass 403 (e.g. __ddg1=...; cf_clearance=...)",
+        "cookies_help": "Help: Get cookies from your browser to bypass Cloudflare.",
     },
     "zh": {
         "app_title": "Web-DL-Manager",
@@ -432,6 +435,9 @@ LANGUAGES = {
         "creator_id_label": "创作者 ID",
         "service_label": "平台/服务",
         "fetch_posts_button": "获取帖子并开始",
+        "cookies_label": "Cookies (可选)",
+        "cookies_placeholder": "粘贴 Cookie 以绕过 403 (例如: __ddg1=...; cf_clearance=...)",
+        "cookies_help": "提示：从浏览器获取 Cookie 以绕过 Cloudflare 防护。",
     }
 }
 
