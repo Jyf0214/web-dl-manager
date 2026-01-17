@@ -163,7 +163,7 @@ async def create_download_job(
             twitter_retweets=(twitter_retweets == "true"),
             twitter_replies=(twitter_replies == "true")
         ))
-    return RedirectResponse("/tasks", status_code=303)
+    return JSONResponse(content={"status": "success", "message": f"Started {len(urls)} task(s).", "task_count": len(urls)})
 
 @router.post("/retry/{task_id}", response_class=RedirectResponse)
 async def retry_task(task_id: str, current_user: User = Depends(get_current_user)):
