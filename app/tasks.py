@@ -7,6 +7,7 @@ import time
 import logging
 from pathlib import Path
 import json
+import tempfile
 
 from . import openlist
 from .database import db_config
@@ -29,6 +30,23 @@ debug_enabled = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
 # 全局并发控制：同时最多运行2个任务
 task_semaphore = asyncio.Semaphore(2)
+
+def create_netscape_cookies(cookies_str: str) -> str:
+    """Converts a standard cookie string to a Netscape format cookie file."""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+        f.write("# Netscape HTTP Cookie File\n")
+        f.write("# http://curl.haxx.se/rfc/cookie_spec.html\n")
+        f.write("# This is a generated file!  Do not edit.\n\n")
+        
+        for cookie in cookies_str.split(';'):
+            if '=' in cookie:
+                name, value = cookie.strip().split('=', 1)
+                # domains for kemono/coomer
+                f.write(f".kemono.cr\tTRUE\t/\tFALSE\t0\t{name}\t{value}\n")
+                f.write(f".kemono.su\tTRUE\t/\tFALSE\t0\t{name}\t{value}\n")
+                f.write(f".coomer.st\tTRUE\t/\tFALSE\t0\t{name}\t{value}\n")
+                f.write(f".coomer.su\tTRUE\t/\tFALSE\t0\t{name}\t{value}\n")
+        return f.name
 
 
 async def unified_periodic_sync():
@@ -462,6 +480,66 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
                 logger.debug(f"[WORKFLOW] 配置下载器: {downloader}")
                 logger.debug(f"[WORKFLOW] 代理设置: {proxy if proxy else '无'}")
                 logger.debug(f"[WORKFLOW] 速度限制: {params.get('rate_limit', '无')}")
+
+            # Auto-switch to kemono-dl for specific sites when uncompressed upload is requested
+            is_kemono_site = any(domain in url for domain in ["kemono.cr", "kemono.su", "coomer.st", "coomer.su"])
+            if is_kemono_site and not enable_compression:
+                if debug_enabled:
+                    logger.debug(f"[WORKFLOW] 自动切换到 kemono-dl 引擎处理 {url}")
+                
+                cookie_file = None
+                try:
+                    # 1. Prepare Command
+                    cmd = ["python3", "-m", "kemono_dl", "--path", str(task_download_dir), url]
+                    
+                    # Hierarchical structure as requested
+                    cmd.extend(["--output", "{service}/{creator_name}/{post_title}/{filename}"])
+
+                    # Get cookies from params or DB
+                    cookies_str = params.get("cookies")
+                    kemono_user = params.get("kemono_username") or db_config.get_config("WDM_KEMONO_USERNAME")
+                    kemono_pass = params.get("kemono_password") or db_config.get_config("WDM_KEMONO_PASSWORD")
+
+                    if cookies_str:
+                        cookie_file = create_netscape_cookies(cookies_str)
+                        cmd.extend(["--cookies", cookie_file])
+                    elif kemono_user and kemono_pass:
+                        cmd.extend(["--kemono-login", kemono_user, kemono_pass])
+
+                    with open(status_file, "a") as f:
+                        f.write(f"Starting kemono-dl for {url}...\n")
+
+                    # 2. Execute process
+                    process = await asyncio.create_subprocess_exec(
+                        *cmd,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.STDOUT
+                    )
+
+                    while True:
+                        line = await process.stdout.readline()
+                        if not line: break
+                        decoded_line = line.decode('utf-8', errors='ignore')
+                        with open(status_file, "a") as f: f.write(decoded_line)
+                        if "Downloading" in decoded_line:
+                            update_task_status(task_id, {"progress_count": "Downloading..."})
+
+                    await process.wait()
+                    if process.returncode != 0:
+                        raise Exception(f"kemono-dl exited with code {process.returncode}")
+
+                    with open(status_file, "a") as f:
+                        f.write("\nDownload complete. Starting upload...\n")
+
+                    # 3. Upload
+                    update_task_status(task_id, {"status": "uploading"})
+                    await upload_uncompressed(task_id, service, upload_path, params, upload_log_file)
+                    update_task_status(task_id, {"status": "completed"})
+                    return # Task finished successfully
+                    
+                finally:
+                    if cookie_file and os.path.exists(cookie_file):
+                        os.unlink(cookie_file)
 
             if downloader == "megadl":
                 command = f"megadl --path {task_download_dir}"
