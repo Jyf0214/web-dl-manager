@@ -1,0 +1,24 @@
+Starting job test-regular-kemono-task for URL: https://kemono.cr/patreon/user/28444363/post/148258017
+
+[Attempt 1/3] Executing command: gallery-dl --verbose -c "/root/web-dl-manager/app/tmp/data/status/test-regular-kemono-task_gdl.json" https://kemono.cr/patreon/user/28444363/post/148258017
+[gallery-dl][debug] Version 1.30.10
+[gallery-dl][debug] Python 3.10.4 - Linux-6.11.0-1018-azure-x86_64-with-glibc2.35
+[gallery-dl][debug] requests 2.32.5 - urllib3 2.5.0
+[gallery-dl][debug] Configuration Files ['/root/web-dl-manager/app/tmp/data/status/test-regular-kemono-task_gdl.json']
+[gallery-dl][debug] Starting DownloadJob for 'https://kemono.cr/patreon/user/28444363/post/148258017'
+[kemono][debug] Using KemonoPostExtractor for 'https://kemono.cr/patreon/user/28444363/post/148258017'
+[urllib3.connectionpool][debug] Starting new HTTPS connection (1): kemono.cr:443
+[urllib3.connectionpool][debug] https://kemono.cr:443 "GET /api/v1/patreon/user/28444363/post/148258017 HTTP/1.1" 200 761
+[urllib3.connectionpool][debug] https://kemono.cr:443 "GET /api/v1/patreon/user/28444363/profile HTTP/1.1" 200 196
+[urllib3.connectionpool][debug] https://kemono.cr:443 "GET /data/2c/00/2c002eca71312812042951381b96526d8cf6f4be9d0e8f312f786c3affd6362e.png HTTP/1.1" 302 138
+[urllib3.connectionpool][debug] Starting new HTTPS connection (1): n1.kemono.cr:443
+[urllib3.connectionpool][debug] https://n1.kemono.cr:443 "GET /data/2c/00/2c002eca71312812042951381b96526d8cf6f4be9d0e8f312f786c3affd6362e.png HTTP/1.1" 200 18281225
+/root/web-dl-manager/app/tmp/data/downloads/test-regular-kemono-task/28444363/Choco's VIP Room/148258017_Choco's VIP Room_01_ChocoVIPe.png
+
+[Attempt 1] Task finished successfully.
+
+Job completed successfully (compression disabled).
+
+--- Cleaning up task resources... ---Removed directory: /root/web-dl-manager/app/tmp/data/downloads/test-regular-kemono-task
+Removed gallery-dl config: /root/web-dl-manager/app/tmp/data/status/test-regular-kemono-task_gdl.json
+Cleanup complete.
