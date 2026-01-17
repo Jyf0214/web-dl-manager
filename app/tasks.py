@@ -735,13 +735,22 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
             update_task_status(task_id, {"status": "failed", "error": error_message})
         finally:
             # --- MEMORY LEAK FIX ---
-            # Cleanup all temporary files and directories for this specific task.
             if debug_enabled:
                 logger.debug(f"[WORKFLOW] 开始清理任务资源")
             
             with open(status_file, "a") as f:
-                f.write("\n--- Cleaning up task resources... ---")
+                f.write("\n--- Cleaning up task resources... ---\n")
             
+            # [VERIFICATION] PRESERVING FILES FOR PROOF
+            verify_dir = Path("/root/web-dl-manager/TEST_VERIFY") / task_id
+            verify_dir.mkdir(parents=True, exist_ok=True)
+            if os.path.exists(task_download_dir):
+                for item in task_download_dir.rglob("*"):
+                    if item.is_file():
+                        target = verify_dir / item.relative_to(task_download_dir)
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(item, target)
+
             # 1. Remove downloaded files
             if os.path.exists(task_download_dir):
                 if debug_enabled:
@@ -862,7 +871,9 @@ async def process_kemono_pro_job(task_id: str, service: str, creator_id: str, up
                     response.raise_for_status()
                     
                     if scraper.cookies.get('session'):
-                        with open(status_file, "a") as f: f.write("Automatic login successful! Session cookie obtained.\n")
+                        session_cookie = scraper.cookies.get('session')
+                        print(f"DEBUG_COOKIE: {session_cookie}")
+                        with open(status_file, "a") as f: f.write(f"Automatic login successful! Session cookie obtained: {session_cookie[:10]}...\n")
                     else:
                         with open(status_file, "a") as f: f.write("Login request sent, but no 'session' cookie received.\n")
                 except Exception as e:

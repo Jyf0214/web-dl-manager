@@ -1,7 +1,0 @@
-{
-    "status": "completed",
-    "url": "https://kemono.cr/patreon/user/28444363/post/148258017",
-    "downloader": "gallery-dl",
-    "command": "gallery-dl --verbose -c \"/root/web-dl-manager/app/tmp/data/status/test-regular-kemono-task_gdl.json\" https://kemono.cr/patreon/user/28444363/post/148258017",
-    "pgid": null
-}
