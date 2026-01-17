@@ -104,11 +104,11 @@
                     <div class="row g-2">
                         <div class="col-6">
                             <label class="form-label small text-muted">{{ lang.kemono_user_label }}</label>
-                            <input type="text" class="form-control form-control-sm" name="kemono_username">
+                            <input type="text" class="form-control form-control-sm" name="kemono_username" value="{{ get_config('WDM_KEMONO_USERNAME', '') }}">
                         </div>
                         <div class="col-6">
                             <label class="form-label small text-muted">{{ lang.kemono_pass_label }}</label>
-                            <input type="password" class="form-control form-control-sm" name="kemono_password">
+                            <input type="password" class="form-control form-control-sm" name="kemono_password" value="{{ get_config('WDM_KEMONO_PASSWORD', '') }}">
                         </div>
                     </div>
                     <div class="form-text x-small mt-2">{{ lang.kemono_login_help }}</div>

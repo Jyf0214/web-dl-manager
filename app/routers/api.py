@@ -270,6 +270,13 @@ async def create_kemono_pro_job(
 
     update_task_status(task_id, {"id": task_id, "status": "queued", "original_params": dict(params), "created_by": current_user.username, "url": f"{service}/{creator_id} (Pro)"})
     
+    # Fallback to database config for credentials if not provided in form
+    from ..database import db_config
+    if not kemono_username:
+        kemono_username = db_config.get_config("WDM_KEMONO_USERNAME")
+    if not kemono_password:
+        kemono_password = db_config.get_config("WDM_KEMONO_PASSWORD")
+
     asyncio.create_task(process_kemono_pro_job(
         task_id=task_id, service=service, creator_id=creator_id, upload_service=upload_service, upload_path=upload_path,
         params=dict(params), cookies=cookies,

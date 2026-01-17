@@ -221,6 +221,8 @@ LANGUAGES = {
         "kemono_user_label": "Kemono Username (Optional)",
         "kemono_pass_label": "Kemono Password (Optional)",
         "kemono_login_help": "Login to Kemono.cr automatically to get session cookies.",
+        "kemono_settings_section": "Kemono Credentials",
+        "kemono_settings_text": "Set your Kemono.cr account here to use across all Pro tasks.",
     },
     "zh": {
         "app_title": "Web-DL-Manager",
@@ -444,6 +446,8 @@ LANGUAGES = {
         "kemono_user_label": "Kemono 用户名 (可选)",
         "kemono_pass_label": "Kemono 密码 (可选)",
         "kemono_login_help": "自动登录 Kemono.cr 以获取会话 Cookie。",
+        "kemono_settings_section": "Kemono 账号凭证",
+        "kemono_settings_text": "在此设置您的 Kemono.cr 账号，将自动应用于所有增强版任务。",
     }
 }
 
