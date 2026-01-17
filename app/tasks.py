@@ -27,6 +27,9 @@ logger = logging.getLogger(__name__)
 # 检查是否启用DEBUG模式
 debug_enabled = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
+# 全局并发控制：同时最多运行2个任务
+task_semaphore = asyncio.Semaphore(2)
+
 
 async def unified_periodic_sync():
     """Periodically syncs multiple tasks (including gallery-dl) to remote storage via rclone."""
@@ -395,8 +398,9 @@ async def compress_in_chunks(task_id: str, source_dir: Path, archive_name_base: 
 
 async def process_download_job(task_id: str, url: str, downloader: str, service: str, upload_path: str, params: dict, enable_compression: bool = True, split_compression: bool = False, split_size: int = 1000, **kwargs):
     """The main background task for a download job."""
-    task_download_dir = DOWNLOADS_DIR / task_id
-    archive_name = generate_archive_name(url)
+    async with task_semaphore:
+        task_download_dir = DOWNLOADS_DIR / task_id
+        archive_name = generate_archive_name(url)
     status_file = STATUS_DIR / f"{task_id}.log"
     upload_log_file = STATUS_DIR / f"{task_id}_upload.log"
     archive_paths = []
