@@ -499,11 +499,16 @@ async def process_download_job(task_id: str, url: str, downloader: str, service:
                     command += " -o extractor.pixiv.ugoira=false"
                 if twitter_retweets:
                     command += " -o extractor.twitter.retweets=true"
-                if twitter_replies:
-                    command += " -o extractor.twitter.replies=true"
-
-                # Add custom arguments from database
-                extra_args = db_config.get_config("WDM_GALLERY_DL_ARGS", "")
+                            if twitter_replies:
+                                command += " -o extractor.twitter.replies=true"
+                
+                            # Add Kemono credentials if configured
+                            kemono_user = db_config.get_config("WDM_KEMONO_USERNAME")
+                            kemono_pass = db_config.get_config("WDM_KEMONO_PASSWORD")
+                            if kemono_user and kemono_pass:
+                                command += f" -o extractor.kemono.username={kemono_user} -o extractor.kemono.password={kemono_pass}"
+                
+                            # Add custom arguments from database                extra_args = db_config.get_config("WDM_GALLERY_DL_ARGS", "")
                 if extra_args:
                     command += f" {extra_args}"
                     
